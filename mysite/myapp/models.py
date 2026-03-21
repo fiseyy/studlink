@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 
 class User(AbstractUser):
     ROLE_CHOICES = [
@@ -36,9 +38,11 @@ class FreelanceTask(models.Model):
     currency_rate_date = models.DateField(null=True, blank=True)  # Дата последнего обновления курса
     currency_rate = models.DecimalField(max_digits=10, decimal_places=6, default=1.0)  # Коэффициент пересчета (1 USD = 90 RUB)
 
+    interactions = GenericRelation(Interaction, related_query_name='freelance_tasks')
+
 class Vacancy(models.Model):
     employer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_jobs' )
-    hired_candidate = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='hired_jobs'
+    hired_candidate = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='hired_jobs')
     
     title = models.CharField(max_lenght=80)
     description = models.TextField()
@@ -54,4 +58,21 @@ class Vacancy(models.Model):
 
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    )
+
+    interactions = GenericRelation(Interaction, related_query_name='vacancies')
+
+class Interaction(models.Model):
+    INTERACTION_TYPE = [
+        ('view', 'View'),
+        ('apply', 'Apply'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+
+    interaction_type = models.CharField(max_length=10, choices=INTERACTION_TYPE)
+
+    created_at = models.DateTimeField(auto_now_add=True)
