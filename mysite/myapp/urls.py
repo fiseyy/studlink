@@ -10,6 +10,15 @@ urlpatterns = [
     path('api/convert/<int:task_id>/<str:target_currency>/', views.convert_currency_api, name='convert_currency_api'),
     path('currency-rates/', views.currency_rates_view, name='currency_rates'),
     
+    # Страницы с пагинацией
+    path('vacancies/', views.vacancy_list, name='vacancy_list'),
+    path('freelance-tasks/', views.freelance_task_list, name='freelance_task_list'),
+    path('projects/', views.project_list, name='project_list'),
+    
+    # Детальные страницы
+    path('vacancy/<int:pk>/', views.vacancy_detail, name='vacancy_detail'),
+    path('task/<int:pk>/', views.task_detail, name='task_detail'),
+    
     # Мессенджер
     path('chat/', views.chat_list, name='chat_list'),
     path('chat/<int:room_id>/', views.chat_room, name='chat_room'),

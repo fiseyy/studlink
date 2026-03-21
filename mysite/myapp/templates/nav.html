@@ -7,10 +7,10 @@
                 <h1 class="nav-header-text"><span class="header-Stud">Stud</span><span class="header-Link">Link</span></h1>
             </button></a>
             <div class="nav-buttons d-flex justify-content-between align-items-center">
-                <a href=""><button  class="nav-button active">Вакансии</button></a>
-                <a href=""><button class="nav-button">Фриланс</button></a>
+                <a href="{% url 'vacancy_list' %}"><button class="nav-button {% if request.resolver_match.url_name == 'vacancy_list' %}active{% endif %}">Вакансии</button></a>
+                <a href="{% url 'freelance_task_list' %}"><button class="nav-button {% if request.resolver_match.url_name == 'freelance_task_list' %}active{% endif %}">Фриланс</button></a>
                 <a href=""><button class="nav-button">Резюме</button></a>
-                <a href=""><button class="nav-button">Проекты</button></a>
+                <a href="{% url 'project_list' %}"><button class="nav-button {% if request.resolver_match.url_name == 'project_list' %}active{% endif %}">Проекты</button></a>
             </div>
         </div>
         <div class="nav-right d-flex justify-content-end align-items-center">

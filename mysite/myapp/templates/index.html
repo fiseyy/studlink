@@ -29,10 +29,10 @@
                         </div>
                     </div>
                     <div class="hero-actions">
-                        <a href="#" class="btn btn-primary btn-lg hero-btn">Найти работу</a>
+                        <a href="{% url 'vacancy_list' %}" class="btn btn-primary btn-lg hero-btn">Найти работу</a>
                         <a href="#" class="btn btn-outline-light btn-lg hero-btn">Разместить вакансию</a>
-                        <a href="#" class="btn btn-outline-light btn-lg hero-btn">Найти фриланс-задачу</a>
-                        <a href="#" class="btn btn-outline-light btn-lg hero-btn">Смотреть проекты</a>
+                        <a href="{% url 'freelance_task_list' %}" class="btn btn-outline-light btn-lg hero-btn">Найти фриланс-задачу</a>
+                        <a href="{% url 'project_list' %}" class="btn btn-outline-light btn-lg hero-btn">Смотреть проекты</a>
                     </div>
                 </div>
             </div>

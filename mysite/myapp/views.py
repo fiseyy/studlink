@@ -7,6 +7,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.db.models import Q
 from django.contrib.auth.models import User
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Count, Avg
 from .models import Vacancy, FreelanceTask, Interaction, ChatRoom, Message, Notification
 from myapp.models import FreelanceTask, Currency
 from myapp.currency_service import CurrencyService
@@ -172,6 +174,244 @@ def currency_rates_view(request):
     return render(request, 'examples/currency_rates.html', context)
 
 
+# === ПАГИНАЦИЯ ДЛЯ ВАКАНСИЙ ===
+
+def vacancy_list(request):
+    """Список вакансий с пагинацией"""
+    # Получаем параметры фильтрации и сортировки
+    search_query = request.GET.get('search', '')
+    sort_by = request.GET.get('sort', 'created_at')
+    page_size = request.GET.get('page_size', 10)
+    
+    # Фильтрация вакансий
+    vacancies = Vacancy.objects.filter(is_active=True).select_related('employer').prefetch_related('interactions')
+    
+    # Поиск по названию и описанию
+    if search_query:
+        vacancies = vacancies.filter(
+            Q(title__icontains=search_query) | 
+            Q(description__icontains=search_query)
+        )
+    
+    # Сортировка
+    if sort_by == 'title_asc':
+        vacancies = vacancies.order_by('title')
+    elif sort_by == 'title_desc':
+        vacancies = vacancies.order_by('-title')
+    elif sort_by == 'date_asc':
+        vacancies = vacancies.order_by('created_at')
+    else:  # date_desc по умолчанию
+        vacancies = vacancies.order_by('-created_at')
+    
+    # Проверка на пустой список
+    if not vacancies.exists():
+        context = {
+            'page_obj': None,
+            'paginator': None,
+            'page_range': [],
+            'page_size': int(page_size),
+            'search_query': search_query,
+            'sort_by': sort_by,
+        }
+        return render(request, 'vacancy_list.html', context)
+    
+    # Пагинация
+    paginator = Paginator(vacancies, page_size)
+    page_number = request.GET.get('page')
+    
+    try:
+        page_obj = paginator.get_page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.get_page(1)
+    except EmptyPage:
+        page_obj = paginator.get_page(paginator.num_pages)
+    
+    # Генерация диапазона страниц для отображения
+    page_range = get_page_range(page_obj.number, paginator.num_pages)
+    
+    context = {
+        'page_obj': page_obj,
+        'paginator': paginator,
+        'page_range': page_range,
+        'page_size': int(page_size),
+        'search_query': search_query,
+        'sort_by': sort_by,
+    }
+    
+    return render(request, 'vacancy_list.html', context)
+
+
+# === ПАГИНАЦИЯ ДЛЯ ФРИЛАНС-ЗАДАЧ ===
+
+def freelance_task_list(request):
+    """Список фриланс-задач с пагинацией"""
+    # Получаем параметры фильтрации и сортировки
+    search_query = request.GET.get('search', '')
+    sort_by = request.GET.get('sort', 'deadline')
+    page_size = request.GET.get('page_size', 10)
+    
+    # Фильтрация задач
+    tasks = FreelanceTask.objects.select_related('creator', 'executor', 'currency').prefetch_related('interactions')
+    
+    # Поиск по названию и описанию
+    if search_query:
+        tasks = tasks.filter(
+            Q(title__icontains=search_query) | 
+            Q(description__icontains=search_query)
+        )
+    
+    # Сортировка
+    if sort_by == 'title_asc':
+        tasks = tasks.order_by('title')
+    elif sort_by == 'title_desc':
+        tasks = tasks.order_by('-title')
+    elif sort_by == 'date_asc':
+        tasks = tasks.order_by('created_at')
+    elif sort_by == 'date_desc':
+        tasks = tasks.order_by('-created_at')
+    elif sort_by == 'deadline_asc':
+        tasks = tasks.order_by('deadline')
+    else:  # deadline по умолчанию
+        tasks = tasks.order_by('deadline')
+    
+    # Проверка на пустой список
+    if not tasks.exists():
+        currencies = Currency.objects.all().order_by('code')
+        selected_currency = request.GET.get('currency', 'RUB')
+        
+        context = {
+            'page_obj': None,
+            'paginator': None,
+            'page_range': [],
+            'page_size': int(page_size),
+            'search_query': search_query,
+            'sort_by': sort_by,
+            'currencies': currencies,
+            'selected_currency': selected_currency,
+        }
+        return render(request, 'freelance_task_list.html', context)
+    
+    # Пагинация
+    paginator = Paginator(tasks, page_size)
+    page_number = request.GET.get('page')
+    
+    try:
+        page_obj = paginator.get_page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.get_page(1)
+    except EmptyPage:
+        page_obj = paginator.get_page(paginator.num_pages)
+    
+    # Генерация диапазона страниц для отображения
+    page_range = get_page_range(page_obj.number, paginator.num_pages)
+    
+    # Получаем доступные валюты для конвертации
+    currencies = Currency.objects.all().order_by('code')
+    selected_currency = request.GET.get('currency', 'RUB')
+    
+    context = {
+        'page_obj': page_obj,
+        'paginator': paginator,
+        'page_range': page_range,
+        'page_size': int(page_size),
+        'search_query': search_query,
+        'sort_by': sort_by,
+        'currencies': currencies,
+        'selected_currency': selected_currency,
+    }
+    
+    return render(request, 'freelance_task_list.html', context)
+
+
+# === ПАГИНАЦИЯ ДЛЯ ПРОЕКТОВ ===
+
+def project_list(request):
+    """Список проектов с пагинацией"""
+    # Получаем параметры фильтрации и сортировки
+    search_query = request.GET.get('search', '')
+    sort_by = request.GET.get('sort', 'created_at')
+    page_size = request.GET.get('page_size', 10)
+    
+    # Фильтрация проектов (пока используем вакансии как пример проектов)
+    # В реальности здесь должны быть объекты модели Project
+    projects = Vacancy.objects.filter(is_active=True).select_related('employer').prefetch_related('interactions')
+    
+    # Поиск по названию и описанию
+    if search_query:
+        projects = projects.filter(
+            Q(title__icontains=search_query) | 
+            Q(description__icontains=search_query)
+        )
+    
+    # Сортировка
+    if sort_by == 'title_asc':
+        projects = projects.order_by('title')
+    elif sort_by == 'title_desc':
+        projects = projects.order_by('-title')
+    elif sort_by == 'date_asc':
+        projects = projects.order_by('created_at')
+    else:  # date_desc по умолчанию
+        projects = projects.order_by('-created_at')
+    
+    # Проверка на пустой список
+    if not projects.exists():
+        context = {
+            'page_obj': None,
+            'paginator': None,
+            'page_range': [],
+            'page_size': int(page_size),
+            'search_query': search_query,
+            'sort_by': sort_by,
+        }
+        return render(request, 'project_list.html', context)
+    
+    # Пагинация
+    paginator = Paginator(projects, page_size)
+    page_number = request.GET.get('page')
+    
+    try:
+        page_obj = paginator.get_page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.get_page(1)
+    except EmptyPage:
+        page_obj = paginator.get_page(paginator.num_pages)
+    
+    # Генерация диапазона страниц для отображения
+    page_range = get_page_range(page_obj.number, paginator.num_pages)
+    
+    context = {
+        'page_obj': page_obj,
+        'paginator': paginator,
+        'page_range': page_range,
+        'page_size': int(page_size),
+        'search_query': search_query,
+        'sort_by': sort_by,
+    }
+    
+    return render(request, 'project_list.html', context)
+
+
+# === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
+
+def get_page_range(current_page, total_pages, max_pages=7):
+    """
+    Генерирует диапазон страниц для отображения в пагинации
+    max_pages - максимальное количество номеров страниц для отображения
+    """
+    if total_pages <= max_pages:
+        return range(1, total_pages + 1)
+    
+    # Вычисляем диапазон страниц
+    start = max(1, current_page - max_pages // 2)
+    end = min(total_pages, start + max_pages - 1)
+    
+    # Корректируем начало, если диапазон слишком сдвинулся вправо
+    if end - start < max_pages - 1:
+        start = max(1, end - max_pages + 1)
+    
+    return range(start, end + 1)
+
+
 # === МЕССЕНДЖЕР ===
 
 @login_required
@@ -186,10 +426,8 @@ def chat_list(request):
     # Для каждого чата получаем последнее сообщение
     for room in chat_rooms:
         room.last_message = room.messages.order_by('-created_at').first()
-        room.unread_count = room.messages.filter(
-            created_at__gt=room.messages.filter(
-                read_by=request.user
-            ).order_by('-created_at').first().created_at if room.messages.filter(read_by=request.user).exists() else timezone.now()
+        room.unread_count = room.messages.exclude(
+            read_by=request.user
         ).count()
     
     context = {
