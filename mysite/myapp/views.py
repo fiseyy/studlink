@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 from myapp.models import FreelanceTask, Currency
 from myapp.currency_service import CurrencyService
+from .forms import UserRegisterForm
 
 def vacancy_detail(request, pk):
     vacancy = get_object_or_404(Vacancy, pk=pk)
@@ -138,5 +139,16 @@ def currency_rates_view(request):
         'currencies': currency_data,
         'base_currency': service.base_currency,
     }
-    
     return render(request, 'examples/currency_rates.html', context)
+
+def register(request):
+    if request.method == 'POST':
+        form = UserRegisterForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('login')  # перенаправление на страницу логина после регистрации
+    else:
+        form = UserRegisterForm()
+    
+    return render(request, 'register.html', {'form': form})
+    
