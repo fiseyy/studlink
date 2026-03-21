@@ -37,15 +37,19 @@ class CurrencyService:
         if not rates:
             return False
         
-        # Обновляем курсы для всех валют
+        # Обновляем курсы в модели Currency
         for currency in Currency.objects.all():
             if currency.code in rates:
                 currency_rate = rates[currency.code]
                 
+                # Обновляем курс в модели Currency
+                currency.rate = currency_rate
+                currency.rate_date = rate_date
+                currency.save()
+                
                 # Обновляем все задачи в этой валюте
                 FreelanceTask.objects.filter(
-                    currency=currency,
-                    currency_rate_date__lt=rate_date
+                    currency=currency
                 ).update(
                     currency_rate=currency_rate,
                     currency_rate_date=rate_date
@@ -55,7 +59,7 @@ class CurrencyService:
     
     def get_task_cost_in_base_currency(self, task):
         """Получение стоимости задачи в базовой валюте"""
-        return task.cost * task.currency_rate
+        return float(task.cost) * float(task.currency.rate)
     
     def format_currency(self, amount, currency_code):
         """Форматирование суммы с валютой"""

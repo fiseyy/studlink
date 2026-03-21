@@ -1,0 +1,104 @@
+{% load currency_tags %}
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Список задач</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .task-card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .task-title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+        .task-meta { color: #666; font-size: 14px; margin-bottom: 10px; }
+        .task-cost { font-size: 20px; font-weight: bold; color: #2c3e50; }
+        .currency-selector { margin: 20px 0; }
+        .currency-selector select { padding: 8px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
+        .cost-comparison { display: flex; gap: 15px; margin-top: 10px; }
+        .cost-item { background: #f8f9fa; padding: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Список задач</h1>
+    
+    <!-- Селектор валют -->
+    <div class="currency-selector">
+        <label for="currency-select">Выберите валюту:</label>
+        <select id="currency-select" onchange="updateCurrency()">
+            {% for currency in currencies %}
+                <option value="{{ currency.code }}" {% if currency.code == selected_currency %}selected{% endif %}>
+                    {{ currency.name }} ({{ currency.symbol }})
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Список задач -->
+    <div id="tasks-container">
+        {% for task in tasks %}
+        <div class="task-card">
+            <div class="task-title">{{ task.title }}</div>
+            <div class="task-meta">
+                Создатель: {{ task.creator.username }} | 
+                Исполнитель: {% if task.executor %}{{ task.executor.username }}{% else %}Не назначен{% endif %} |
+                Дедлайн: {{ task.deadline|date:"d.m.Y H:i" }}
+            </div>
+            
+            <!-- Основная стоимость в валюте задачи -->
+            <div class="task-cost">
+                Стоимость: {{ task.cost|format_currency:task.currency.code }}
+            </div>
+            
+            <!-- Сравнение стоимости в разных валютах -->
+            <div class="cost-comparison">
+                {% for currency in currencies %}
+                <div class="cost-item">
+                    <strong>{{ currency.name }}:</strong><br>
+                    <span id="cost-{{ task.id }}-{{ currency.code }}">
+                        {{ task.cost|convert_to_currency:currency.code }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Информация о курсе -->
+            <div style="margin-top: 10px; font-size: 12px; color: #888;">
+                Курс обновлен: {{ task.currency_rate_date|default:"-" }}<br>
+                Коэффициент: {{ task.currency_rate }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        let currentCurrency = '{{ selected_currency }}';
+        
+        function updateCurrency() {
+            const newCurrency = document.getElementById('currency-select').value;
+            currentCurrency = newCurrency;
+            
+            // Обновляем все стоимости на странице
+            document.querySelectorAll('[id^="cost-"]').forEach(element => {
+                const [taskId, currencyCode] = element.id.split('-').slice(1);
+                updateCostDisplay(taskId, currencyCode);
+            });
+        }
+        
+        function updateCostDisplay(taskId, targetCurrency) {
+            const element = document.getElementById(`cost-${taskId}-${targetCurrency}`);
+            if (!element) return;
+            
+            // Здесь можно сделать AJAX запрос к серверу для получения актуальной конвертации
+            // Пока просто обновляем текст
+            fetch(`/api/convert/${taskId}/${targetCurrency}/`)
+                .then(response => response.json())
+                .then(data => {
+                    element.innerHTML = `<strong>${data.currency_name}:</strong><br>${data.formatted_amount}`;
+                })
+                .catch(error => {
+                    console.error('Ошибка конвертации:', error);
+                });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+{% load currency_tags %}
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Курсы валют</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .rates-container { max-width: 800px; }
+        .rate-card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .rate-info { font-size: 18px; font-weight: bold; }
+        .rate-value { font-size: 24px; color: #2c3e50; }
+        .base-currency { background-color: #f8f9fa; border-left: 4px solid #007bff; }
+        .last-update { margin-top: 20px; color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="rates-container">
+        <h1>Курсы валют</h1>
+        <p>Базовая валюта: <strong>{{ base_currency }}</strong></p>
+        
+        {% for currency in currencies %}
+        <div class="rate-card {% if currency.code == base_currency %}base-currency{% endif %}">
+            <div class="rate-info">
+                <span class="currency-name">{{ currency.name }}</span>
+                <span class="currency-code">({{ currency.code }})</span>
+                <span class="currency-symbol">{{ currency.symbol }}</span>
+            </div>
+            <div class="rate-value">
+                {{ currency.rate }} {{ currency.symbol }}
+            </div>
+            {% if currency.rate_date %}
+            <div style="font-size: 12px; color: #888; margin-top: 5px;">
+                Обновлено: {{ currency.rate_date }}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        
+        <div class="last-update">
+            <p>Курсы обновляются автоматически ежедневно</p>
+            <p>Для ручного обновления запустите: <code>python manage.py shell -c "from myapp.currency_service import CurrencyService; CurrencyService().update_currency_rates()"</code></p>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <a href="{% url 'task_list' %}" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Назад к задачам</a>
+        </div>
+    </div>
+</body>
+</html>

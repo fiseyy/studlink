@@ -1,7 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
+
 
 class User(AbstractUser):
     ROLE_CHOICES = [
@@ -18,9 +19,46 @@ class Currency(models.Model):
     code = models.CharField(max_length=3, unique=True)  # Код валюты по ISO 4217 (USD, EUR, RUB)
     name = models.CharField(max_length=50)  # Полное название валюты (Доллар США, Евро, Российский рубль)
     symbol = models.CharField(max_length=5)  # Символ валюты ($, €, ₽)
+    rate = models.DecimalField(max_digits=10, decimal_places=6, default=1.0)  # Текущий курс к базовой валюте
+    rate_date = models.DateField(null=True, blank=True)  # Дата последнего обновления курса
 
     def __str__(self):
         return f"{self.code} ({self.symbol})"
+
+class Interaction(models.Model):
+    INTERACTION_TYPE = [
+        ('view', 'View'),
+        ('apply', 'Apply'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+
+    interaction_type = models.CharField(max_length=10, choices=INTERACTION_TYPE)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class FreelanceTask(models.Model):
+    creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_tasks')
+    executor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='executed_tasks')
+
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    deadline = models.DateTimeField()
+
+    # Валютная система
+    currency = models.ForeignKey(Currency, on_delete=models.PROTECT, default=1)  # Валюта задачи (USD, EUR, RUB)
+    cost = models.DecimalField(max_digits=12, decimal_places=2)  # Стоимость в указанной валюте
+
+    # Курс валюты для пересчета в базовую валюту
+    currency_rate_date = models.DateField(null=True, blank=True)  # Дата последнего обновления курса
+    currency_rate = models.DecimalField(max_digits=10, decimal_places=6, default=1.0)  # Коэффициент пересчета (1 USD = 90 RUB)
+
+
 
 class FreelanceTask(models.Model):
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_tasks')
@@ -60,19 +98,3 @@ class Vacancy(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     interactions = GenericRelation(Interaction, related_query_name='vacancies')
-
-class Interaction(models.Model):
-    INTERACTION_TYPE = [
-        ('view', 'View'),
-        ('apply', 'Apply'),
-    ]
-
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey('content_type', 'object_id')
-
-    interaction_type = models.CharField(max_length=10, choices=INTERACTION_TYPE)
-
-    created_at = models.DateTimeField(auto_now_add=True)
