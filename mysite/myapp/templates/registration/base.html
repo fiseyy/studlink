@@ -1,0 +1,18 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
+        <title>{% block title %}{% endblock title %}</title>
+        {% include "bootstrap.html" %}
+        <link rel="stylesheet" href="{% static "css/login_base.css" %}">
+        {% block head %}{% endblock head %}
+    </head>
+    <body>
+        <div class="menu">
+            {% block main %}{% endblock main %}
+        </div>
+    </body>
+</html>
