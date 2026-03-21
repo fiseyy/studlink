@@ -10,6 +10,33 @@ def format_currency(amount, currency_code):
     return service.format_currency(amount, currency_code)
 
 @register.filter
+def format_salary_with_spaces(amount):
+    """Форматирование зарплаты с пробелами между разрядами"""
+    try:
+        # Преобразуем в целое число для форматирования
+        num = int(float(amount))
+        # Форматируем с пробелами как разделителями тысяч
+        return f"{num:,}".replace(',', ' ')
+    except (ValueError, TypeError):
+        return str(amount)
+
+@register.filter
+def format_salary_range_with_spaces(salary_from, salary_to=None):
+    """Форматирование диапазона зарплаты с пробелами"""
+    try:
+        # Форматируем нижнюю границу
+        formatted_from = f"{int(float(salary_from)):,}".replace(',', ' ')
+        
+        # Если есть верхняя граница, форматируем и её
+        if salary_to and salary_to != salary_from:
+            formatted_to = f"{int(float(salary_to)):,}".replace(',', ' ')
+            return f"{formatted_from} - {formatted_to}"
+        else:
+            return formatted_from
+    except (ValueError, TypeError):
+        return str(salary_from)
+
+@register.filter
 def convert_to_currency(task, target_currency):
     """Конвертация стоимости задачи в указанную валюту"""
     service = CurrencyService()

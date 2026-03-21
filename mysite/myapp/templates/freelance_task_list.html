@@ -1,5 +1,6 @@
 {% extends "pagination_template.html" %}
 {% load static %}
+{% load currency_tags %}
 
 {% block title %}Фриланс-задачи{% endblock %}
 
@@ -44,7 +45,7 @@
     <div class="item-meta">
         <div class="cost-large">
             <span id="cost-{{ item.id }}-{{ selected_currency }}">
-                {{ item.cost|floatformat:0 }} {{ item.currency.symbol }}
+                {{ item.cost|format_salary_with_spaces }} {{ item.currency.symbol }}
             </span>
         </div>
         <div><strong>Просмотров:</strong> {{ item.views_count }}</div>

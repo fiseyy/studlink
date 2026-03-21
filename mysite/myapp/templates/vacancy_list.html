@@ -1,5 +1,6 @@
 {% extends "pagination_template.html" %}
 {% load static %}
+{% load currency_tags %}
 
 {% block title %}Вакансии{% endblock %}
 
@@ -32,7 +33,7 @@
     <div class="item-meta">
         {% if item.salary_from %}
             <div class="salary-large">
-                {{ item.salary_from|floatformat:0 }}{% if item.salary_to %}-{{ item.salary_to|floatformat:0 }}{% endif %} {{ item.currency.symbol }}
+                {{ item.salary_from|format_salary_range_with_spaces:item.salary_to }} {{ item.currency.symbol }}
             </div>
         {% endif %}
         <div><strong>Просмотров:</strong> {{ item.views_count }}</div>
