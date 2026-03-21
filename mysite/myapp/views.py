@@ -1,12 +1,12 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.db.models import Q
-from .models import Vacancy, FreelanceTask, Interaction, ChatRoom, Message, Notification
+from .models import Project, User, Vacancy, FreelanceTask, Interaction, ChatRoom, Message, Notification
 from myapp.models import FreelanceTask, Currency
 from myapp.currency_service import CurrencyService
 import json
@@ -541,3 +541,43 @@ def mark_message_read_api(request, message_id):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_POST
+@login_required
+def create_project(request: HttpRequest) -> HttpResponse:
+    author = User.objects.get(id = request.POST.get('author_id'))
+    contributors = []
+    for id in request.POST.get('contributors'):
+        contributors.append(User.objects.get(id = id))
+    
+    image = request.POST.get('image', None)
+    title = request.POST.get('title', None)
+    description = request.POST.get('description', None)
+
+    if author is None or title is None:
+        return Http404
+    
+    project = Project(
+        author = author,
+        contributors = contributors,
+        image = image,
+        title = title,
+        description = description,
+    )
+
+    project.save()
+
+
+@require_POST
+@login_required
+def add_contributors(request: HttpRequest) -> HttpResponse:
+    project = Project.objects.get(id = request.POST.get('id'))
+
+    contributors = []
+    for id in request.POST.get('contributors'):
+        contributors.append(User.objects.get(id = id))
+        
+    project.contributors.add(contributors)
+
+    project.save()

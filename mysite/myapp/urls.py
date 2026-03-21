@@ -24,4 +24,8 @@ urlpatterns = [
     path('api/notifications/', views.get_notifications_api, name='get_notifications_api'),
     path('api/notifications/<int:notification_id>/read/', views.mark_notification_read_api, name='mark_notification_read_api'),
     path('api/messages/<int:message_id>/read/', views.mark_message_read_api, name='mark_message_read_api'),
+
+    # Проекты
+    path('api/projects/create', views.create_project),
+    path('api/projects/add_contributros', views.add_contributors)
 ]

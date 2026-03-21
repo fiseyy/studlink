@@ -214,3 +214,15 @@ class Notification(models.Model):
         self.is_read = True
         self.read_at = timezone.now()
         self.save()
+
+
+class Project(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_projects")
+    contributors = models.ManyToManyField(User, related_name="projects")
+
+    image = models.ImageField(upload_to='projects')
+    title = models.CharField(max_length=100)
+    description = models.CharField(max_length=1000)
+

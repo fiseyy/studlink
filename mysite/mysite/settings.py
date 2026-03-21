@@ -140,3 +140,7 @@ CELERY_TIMEZONE = 'Europe/Moscow'
 
 # Currency Configuration
 BASE_CURRENCY = 'RUB'  # Базовая валюта для пересчета
+
+
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
