@@ -7,6 +7,263 @@
 
 {% block main %}
 <div class="index-main">
-    
+    <!-- ч -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-12">
+                    <h1 class="hero-title">Найди свою идеальную работу</h1>
+                    <p class="hero-subtitle">Присоединяйся к тысячам студентов, которые уже нашли свою первую работу или стажировку</p>
+                    <div class="hero-stats">
+                        <div class="stat-item">
+                            <span class="stat-number">10000+</span>
+                            <span class="stat-label">Вакансий</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">5000+</span>
+                            <span class="stat-label">Работодателей</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">95%</span>
+                            <span class="stat-label">Успешных трудоустройств</span>
+                        </div>
+                    </div>
+                    <div class="hero-actions">
+                        <a href="#" class="btn btn-primary btn-lg hero-btn">Найти работу</a>
+                        <a href="#" class="btn btn-outline-light btn-lg hero-btn">Разместить вакансию</a>
+                        <a href="#" class="btn btn-outline-light btn-lg hero-btn">Найти фриланс-задачу</a>
+                        <a href="#" class="btn btn-outline-light btn-lg hero-btn">Смотреть проекты</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Categories Section -->
+    <section class="categories-section">
+        <div class="container">
+            <h2 class="section-title">Популярные категории</h2>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="category-card">
+                        <div class="category-icon">
+                            <i class="bi bi-code"></i>
+                        </div>
+                        <h3>Программирование</h3>
+                        <p>Разработка сайтов, приложений, игр и других программных продуктов</p>
+                        <a href="{% url 'task_list' %}" class="category-link">Найти исполнителя</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="category-card">
+                        <div class="category-icon">
+                            <i class="bi bi-palette"></i>
+                        </div>
+                        <h3>Дизайн</h3>
+                        <p>Создание логотипов, веб-дизайна, иллюстраций и другой визуальной продукции</p>
+                        <a href="{% url 'task_list' %}" class="category-link">Найти исполнителя</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="category-card">
+                        <div class="category-icon">
+                            <i class="bi bi-megaphone"></i>
+                        </div>
+                        <h3>Маркетинг</h3>
+                        <p>Реклама, продвижение, SMM, копирайтинг и другие маркетинговые услуги</p>
+                        <a href="{% url 'task_list' %}" class="category-link">Найти исполнителя</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section">
+        <div class="container">
+            <h2 class="section-title">Почему выбирают нас</h2>
+            <div class="row">
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                        <h4>Надежно</h4>
+                        <p>Проверенные работодатели и безопасные сделки</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="bi bi-clock"></i>
+                        </div>
+                        <h4>Быстро</h4>
+                        <p>Быстрый поиск и быстрый отклик от работодателей</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="bi bi-people"></i>
+                        </div>
+                        <h4>Удобно</h4>
+                        <p>Интуитивный интерфейс и поддержка 24/7</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="bi bi-graph-up"></i>
+                        </div>
+                        <h4>Развивайся</h4>
+                        <p>Обучение, курсы и карьерный рост</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="container">
+            <div class="row text-center">
+                <div class="col-md-3">
+                    <div class="stat-box">
+                        <span class="stat-number">15000+</span>
+                        <span class="stat-label">Активных вакансий</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-box">
+                        <span class="stat-number">50000+</span>
+                        <span class="stat-label">Зарегистрированных студентов</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-box">
+                        <span class="stat-number">2000+</span>
+                        <span class="stat-label">Компаний-партнеров</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-box">
+                        <span class="stat-number">95%</span>
+                        <span class="stat-label">Удовлетворенности</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials-section">
+        <div class="container">
+            <h2 class="section-title">Отзывы наших пользователей</h2>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote">
+                            <i class="bi bi-quote"></i>
+                        </div>
+                        <p class="testimonial-text">Нашел свою первую работу через StudLink. Быстро, удобно и надежно!</p>
+                        <div class="testimonial-author">
+                            <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?auto=format&fit=crop&w=60&q=80" alt="Author" class="author-avatar">
+                            <div class="author-info">
+                                <span class="author-name">Александр Петров</span>
+                                <span class="author-position">Frontend Developer</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote">
+                            <i class="bi bi-quote"></i>
+                        </div>
+                        <p class="testimonial-text">Отличная платформа для поиска стажировок. Много интересных предложений!</p>
+                        <div class="testimonial-author">
+                            <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=60&q=80" alt="Author" class="author-avatar">
+                            <div class="author-info">
+                                <span class="author-name">Мария Сидорова</span>
+                                <span class="author-position">UX Designer</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote">
+                            <i class="bi bi-quote"></i>
+                        </div>
+                        <p class="testimonial-text">Разместили вакансию и быстро нашли подходящего кандидата. Рекомендуем!</p>
+                        <div class="testimonial-author">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=60&q=80" alt="Author" class="author-avatar">
+                            <div class="author-info">
+                                <span class="author-name">Иван Кузнецов</span>
+                                <span class="author-position">HR Manager</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h2 class="cta-title">Готов начать карьеру?</h2>
+                    <p class="cta-subtitle">Присоединяйся к нашему сообществу уже сегодня</p>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <a href="#" class="btn btn-primary btn-lg cta-btn">Зарегистрироваться</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
 </div>
 {% endblock main %}
+
+{% block footer %}
+<footer class="footer">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <div class="footer-brand">
+                    <h3 class="footer-title"><span class="footer-Stud">Stud</span><span class="footer-Link">Link</span></h3>
+                    <p class="footer-description">Твоя первая работа начинается здесь</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="footer-social-minimal">
+                    <span class="social-text">Мы в соцсетях:</span>
+                    <div class="social-icons">
+                        <a href="#" class="social-icon" aria-label="ВКонтакте">
+                            <i class="bi bi-chat-dots"></i>
+                        </a>
+                        <a href="#" class="social-icon" aria-label="Telegram">
+                            <i class="bi bi-telegram"></i>
+                        </a>
+                        <a href="#" class="social-icon" aria-label="GitHub">
+                            <i class="bi bi-github"></i>
+                        </a>
+                        <a href="#" class="social-icon" aria-label="Discord">
+                            <i class="bi bi-discord"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="footer-bottom">
+                    <p class="footer-copyright">&copy; 2026 StudLink. Все права защищены.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+{% endblock footer %}
