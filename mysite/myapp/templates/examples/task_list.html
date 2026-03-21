@@ -61,6 +61,25 @@
                 {% endfor %}
             </div>
             
+            <!-- Ссылка на чат -->
+            <div style="margin-top: 10px;">
+                {% if user.is_authenticated %}
+                    {% if user == task.creator or user == task.executor %}
+                        {% if task.executor %}
+                            <a href="{% url 'create_task_chat' task.id %}" style="background: #007bff; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">
+                                Перейти в чат по задаче
+                            </a>
+                        {% else %}
+                            <span style="color: #666; font-style: italic;">Чат доступен после назначения исполнителя</span>
+                        {% endif %}
+                    {% else %}
+                        <span style="color: #666; font-style: italic;">Чат доступен только создателю и исполнителю</span>
+                    {% endif %}
+                {% else %}
+                    <span style="color: #666; font-style: italic;">Авторизуйтесь для доступа к чату</span>
+                {% endif %}
+            </div>
+            
             <!-- Информация о курсе -->
             <div style="margin-top: 10px; font-size: 12px; color: #888;">
                 Курс обновлен: {{ task.currency_rate_date|default:"-" }}<br>

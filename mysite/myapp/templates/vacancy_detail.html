@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вакансия: {{ vacancy.title }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .vacancy-card { border: 1px solid #ddd; padding: 20px; border-radius: 8px; max-width: 800px; }
+        .vacancy-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+        .vacancy-meta { color: #666; font-size: 14px; margin-bottom: 15px; }
+        .vacancy-salary { font-size: 20px; font-weight: bold; color: #2c3e50; margin-bottom: 15px; }
+        .vacancy-description { font-size: 16px; line-height: 1.6; margin-bottom: 20px; }
+        .chat-link { background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 10px; }
+        .chat-link:hover { background: #0056b3; }
+        .no-chat { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="vacancy-card">
+        <div class="vacancy-title">{{ vacancy.title }}</div>
+        
+        <div class="vacancy-meta">
+            Работодатель: {{ vacancy.employer.username }} | 
+            Нанятый: {% if vacancy.hired_candidate %}{{ vacancy.hired_candidate.username }}{% else %}Не нанят{% endif %} |
+            Срок действия: {{ vacancy.expiration|date:"d.m.Y H:i" }}
+        </div>
+        
+        <div class="vacancy-salary">
+            Зарплата: {{ vacancy.salary_from|format_currency:vacancy.currency.code }}
+            {% if vacancy.salary_to %}
+                - {{ vacancy.salary_to|format_currency:vacancy.currency.code }}
+            {% endif %}
+        </div>
+        
+        <div class="vacancy-description">
+            {{ vacancy.description }}
+        </div>
+        
+        <!-- Ссылка на чат -->
+        {% if chat_room %}
+            <a href="{% url 'chat_room' chat_room.id %}" class="chat-link">
+                Перейти в чат по вакансии
+            </a>
+        {% else %}
+            <div class="no-chat">
+                Чат по вакансии еще не создан
+            </div>
+            {% if user.is_authenticated and user == vacancy.employer or user == vacancy.hired_candidate %}
+                <a href="{% url 'create_vacancy_chat' vacancy.id %}" class="chat-link">
+                    Создать чат по вакансии
+                </a>
+            {% endif %}
+        {% endif %}
+        
+        <!-- Информация о курсе -->
+        <div style="margin-top: 15px; font-size: 12px; color: #888;">
+            Курс обновлен: {{ vacancy.currency_rate_date|default:"-" }}<br>
+            Коэффициент: {{ vacancy.currency_rate }}
+        </div>
+    </div>
+</body>
+</html>

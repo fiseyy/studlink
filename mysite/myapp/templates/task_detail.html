@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Задача: {{ task.title }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .task-card { border: 1px solid #ddd; padding: 20px; border-radius: 8px; max-width: 800px; }
+        .task-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+        .task-meta { color: #666; font-size: 14px; margin-bottom: 15px; }
+        .task-cost { font-size: 20px; font-weight: bold; color: #2c3e50; margin-bottom: 15px; }
+        .task-description { font-size: 16px; line-height: 1.6; margin-bottom: 20px; }
+        .chat-link { background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 10px; }
+        .chat-link:hover { background: #0056b3; }
+        .no-chat { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="task-card">
+        <div class="task-title">{{ task.title }}</div>
+        
+        <div class="task-meta">
+            Создатель: {{ task.creator.username }} | 
+            Исполнитель: {% if task.executor %}{{ task.executor.username }}{% else %}Не назначен{% endif %} |
+            Дедлайн: {{ task.deadline|date:"d.m.Y H:i" }}
+        </div>
+        
+        <div class="task-cost">
+            Стоимость: {{ task.cost|format_currency:task.currency.code }}
+        </div>
+        
+        <div class="task-description">
+            {{ task.description }}
+        </div>
+        
+        <!-- Ссылка на чат -->
+        {% if chat_room %}
+            <a href="{% url 'chat_room' chat_room.id %}" class="chat-link">
+                Перейти в чат по задаче
+            </a>
+        {% else %}
+            <div class="no-chat">
+                Чат по задаче еще не создан
+            </div>
+            {% if user.is_authenticated and user == task.creator or user == task.executor %}
+                <a href="{% url 'create_task_chat' task.id %}" class="chat-link">
+                    Создать чат по задаче
+                </a>
+            {% endif %}
+        {% endif %}
+        
+        <!-- Информация о курсе -->
+        <div style="margin-top: 15px; font-size: 12px; color: #888;">
+            Курс обновлен: {{ task.currency_rate_date|default:"-" }}<br>
+            Коэффициент: {{ task.currency_rate }}
+        </div>
+    </div>
+</body>
+</html>

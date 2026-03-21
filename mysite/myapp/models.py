@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
+from django.utils import timezone
 
 
 class User(AbstractUser):
@@ -82,7 +83,7 @@ class Vacancy(models.Model):
     employer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_jobs' )
     hired_candidate = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='hired_jobs')
     
-    title = models.CharField(max_lenght=80)
+    title = models.CharField(max_length=80)
     description = models.TextField()
     expiration = models.DateTimeField()
 
@@ -98,3 +99,118 @@ class Vacancy(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     interactions = GenericRelation(Interaction, related_query_name='vacancies')
+
+
+class ChatRoom(models.Model):
+    """Комнаты для общения"""
+    ROOM_TYPE_CHOICES = [
+        ('direct', 'Прямой чат'),
+        ('task', 'Чат по задаче'),
+        ('vacancy', 'Чат по вакансии'),
+        ('group', 'Групповой чат'),
+    ]
+    
+    name = models.CharField(max_length=100, blank=True)
+    room_type = models.CharField(max_length=20, choices=ROOM_TYPE_CHOICES, default='direct')
+    
+    # Для прямых чатов
+    participants = models.ManyToManyField(User, related_name='chat_rooms')
+    
+    # Для чатов по задачам и вакансиям
+    task = models.ForeignKey(FreelanceTask, on_delete=models.CASCADE, null=True, blank=True)
+    vacancy = models.ForeignKey(Vacancy, on_delete=models.CASCADE, null=True, blank=True)
+    
+    # Для групповых чатов
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_chat_rooms')
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        if self.room_type == 'direct':
+            users = self.participants.all()
+            if users.count() == 2:
+                return f"Чат между {users[0].username} и {users[1].username}"
+            return f"Прямой чат ({users.count()} участников)"
+        elif self.room_type == 'task':
+            return f"Чат по задаче: {self.task.title}"
+        elif self.room_type == 'vacancy':
+            return f"Чат по вакансии: {self.vacancy.title}"
+        return self.name or f"Чат {self.id}"
+
+
+class Message(models.Model):
+    """Сообщения в чатах"""
+    MESSAGE_TYPE_CHOICES = [
+        ('text', 'Текст'),
+        ('file', 'Файл'),
+        ('image', 'Изображение'),
+        ('system', 'Системное сообщение'),
+    ]
+    
+    room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='messages')
+    
+    content = models.TextField(blank=True)
+    message_type = models.CharField(max_length=20, choices=MESSAGE_TYPE_CHOICES, default='text')
+    
+    # Для файлов и изображений
+    file = models.FileField(upload_to='chat_files/', blank=True, null=True)
+    file_name = models.CharField(max_length=255, blank=True)
+    
+    # Метаданные
+    created_at = models.DateTimeField(default=timezone.now)
+    is_read = models.BooleanField(default=False)
+    read_by = models.ManyToManyField(User, related_name='read_messages', blank=True)
+    
+    # Цитирование сообщений
+    reply_to = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='replies')
+    
+    class Meta:
+        ordering = ['created_at']
+    
+    def __str__(self):
+        return f"{self.sender.username}: {self.content[:50]}..."
+    
+    def mark_as_read(self, user):
+        """Отметить сообщение как прочитанное пользователем"""
+        self.read_by.add(user)
+        self.is_read = self.read_by.count() > 0
+        self.save()
+
+
+class Notification(models.Model):
+    """Уведомления о новых сообщениях"""
+    NOTIFICATION_TYPE_CHOICES = [
+        ('new_message', 'Новое сообщение'),
+        ('message_read', 'Сообщение прочитано'),
+        ('chat_invitation', 'Приглашение в чат'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    notification_type = models.CharField(max_length=30, choices=NOTIFICATION_TYPE_CHOICES)
+    
+    # Связь с чатом или сообщением
+    room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, null=True, blank=True)
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, null=True, blank=True)
+    
+    title = models.CharField(max_length=200)
+    message_text = models.TextField()
+    
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.username}: {self.title}"
+    
+    def mark_as_read(self):
+        """Отметить уведомление как прочитанное"""
+        self.is_read = True
+        self.read_at = timezone.now()
+        self.save()

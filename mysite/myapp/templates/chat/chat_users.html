@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пользователи в чате - {{ room.name }}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header */
+        .header {
+            background: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 { font-size: 20px; color: #333; }
+        .back-btn { background: #6c757d; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        .participants-section, .users-section {
+            flex: 1;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .section-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #333; }
+        
+        .user-list { display: flex; flex-direction: column; gap: 10px; }
+        
+        .user-item {
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #007bff;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-primary:hover { background-color: #0056b3; }
+        
+        .btn-danger { background-color: #dc3545; color: white; }
+        .btn-danger:hover { background-color: #c82333; }
+        
+        .btn-secondary { background-color: #6c757d; color: white; }
+        .btn-secondary:hover { background-color: #545b62; }
+        
+        .empty-state { color: #666; font-style: italic; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-btn" onclick="history.back()">← Назад в чат</button>
+        <h1>Пользователи в чате: {{ room.name }}</h1>
+        <div></div>
+    </div>
+
+    <div class="main-content">
+        <!-- Участники чата -->
+        <div class="participants-section">
+            <div class="section-title">Участники чата ({{ chat_participants.count }})</div>
+            <div class="user-list">
+                {% for user in chat_participants %}
+                <div class="user-item">
+                    <div class="user-info">
+                        <div class="user-avatar">{{ user.username|first|upper }}</div>
+                        <div>
+                            <div style="font-weight: bold;">{{ user.username }}</div>
+                            <div style="font-size: 12px; color: #666;">{{ user.get_role_display }}</div>
+                        </div>
+                    </div>
+                    {% if user.id != request.user.id %}
+                        <button class="btn btn-danger" onclick="removeUser({{ room.id }}, {{ user.id }})">
+                            Удалить из чата
+                        </button>
+                    {% else %}
+                        <span style="font-size: 12px; color: #666;">Вы</span>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="empty-state">В чате пока нет участников</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Доступные пользователи -->
+        <div class="users-section">
+            <div class="section-title">Добавить пользователей</div>
+            <div class="user-list">
+                {% for user in other_users %}
+                {% if user not in chat_participants %}
+                <div class="user-item">
+                    <div class="user-info">
+                        <div class="user-avatar">{{ user.username|first|upper }}</div>
+                        <div>
+                            <div style="font-weight: bold;">{{ user.username }}</div>
+                            <div style="font-size: 12px; color: #666;">{{ user.get_role_display }}</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="addUser({{ room.id }}, {{ user.id }})">
+                        Добавить в чат
+                    </button>
+                </div>
+                {% endif %}
+                {% empty %}
+                <div class="empty-state">Нет доступных пользователей для добавления</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function addUser(roomId, userId) {
+            if (confirm('Добавить пользователя в чат?')) {
+                fetch(`/chat/${roomId}/add-user/${userId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken(),
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Ошибка при добавлении пользователя');
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                    alert('Ошибка при добавлении пользователя');
+                });
+            }
+        }
+
+        function removeUser(roomId, userId) {
+            if (confirm('Удалить пользователя из чата?')) {
+                fetch(`/chat/${roomId}/remove-user/${userId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken(),
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Ошибка при удалении пользователя');
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                    alert('Ошибка при удалении пользователя');
+                });
+            }
+        }
+
+        function getCsrfToken() {
+            const token = document.querySelector('[name=csrfmiddlewaretoken]');
+            return token ? token.value : '';
+        }
+    </script>
+</body>
+</html>
