@@ -21,6 +21,4 @@ from myapp import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('registration/<str:step>', views.get_form),
-    path('registration', views.base_view),
 ]

@@ -1,0 +1,13 @@
+{% extends "auth_base.html" %}
+
+{% block form %}
+<h1 class="header">Регистрация</h1>
+<input class="input form-element" type="email" name="email" id="email" placeholder="Электронная почта">
+<p class="taken form-element d-none">Данная электронная почта уже зарегистрирована</p>
+<input class="input form-element" type="password" name="password" id="password" placeholder="Пароль">
+<input class="input form-element" type="text" name="username" id="username" placeholder="Имя пользователя">
+<p class="taken form-element d-none">Данное имя пользователя занято</p>
+<input class="input form-element" type="text" name="name" id="name" placeholder="Имя">
+<input class="input form-element" type="text" name="surname" id="surname" placeholder="Фамилия">
+<button class="submit form-element" type="submit" onclick="get_step(3)">Зарегистрироваться</button>
+{% endblock form %}

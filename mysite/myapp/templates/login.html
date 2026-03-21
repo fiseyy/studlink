@@ -1,0 +1,9 @@
+{% extends "auth_base.html" %}
+
+{% block form %}
+<h1 class="header">Вход</h1>
+<input class="input form-element" type="email" name="email" id="email" placeholder="Электронная почта">
+<input class="input form-element" type="password" name="password" id="password" placeholder="Пароль">
+<p class="taken form-element d-none">Неверный пароль или электронная почта</p>
+<button class="submit form-element" type="submit" onclick="get_step(3)">Войти</button>
+{% endblock form %}
