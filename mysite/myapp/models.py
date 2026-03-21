@@ -35,3 +35,23 @@ class FreelanceTask(models.Model):
     # Курс валюты для пересчета в базовую валюту
     currency_rate_date = models.DateField(null=True, blank=True)  # Дата последнего обновления курса
     currency_rate = models.DecimalField(max_digits=10, decimal_places=6, default=1.0)  # Коэффициент пересчета (1 USD = 90 RUB)
+
+class Vacancy(models.Model):
+    employer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_jobs' )
+    hired_candidate = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='hired_jobs'
+    
+    title = models.CharField(max_lenght=80)
+    description = models.TextField()
+    expiration = models.DateTimeField()
+
+    currency = models.ForeignKey(Currency, on_delete=models.PROTECT, default=1)
+
+    salary_from = models.DecimalField(max_digits=12, decimal_places=2)
+    salary_to = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+    currency_rate_date = models.DateField(null=True, blank=True)  # Дата последнего обновления курса
+    currency_rate = models.DecimalField(max_digits=10, decimal_places=6, default=1.0)  # Коэффициент пересчета (1 USD = 90 RUB)
+
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    )
