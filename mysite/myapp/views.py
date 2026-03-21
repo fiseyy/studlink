@@ -6,10 +6,15 @@ from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.db.models import Q
+from django.contrib.auth.models import User
 from .models import Vacancy, FreelanceTask, Interaction, ChatRoom, Message, Notification
 from myapp.models import FreelanceTask, Currency
 from myapp.currency_service import CurrencyService
 import json
+
+def index(request):
+    """Главная страница"""
+    return render(request, 'index.html')
 
 def vacancy_detail(request, pk):
     vacancy = get_object_or_404(Vacancy, pk=pk)
