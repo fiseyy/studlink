@@ -17,6 +17,7 @@ import json
 def index(request):
     """Главная страница"""
     return render(request, 'index.html')
+from .forms import UserRegisterForm
 
 def vacancy_detail(request, pk):
     vacancy = get_object_or_404(Vacancy, pk=pk)
@@ -170,8 +171,19 @@ def currency_rates_view(request):
         'currencies': currency_data,
         'base_currency': service.base_currency,
     }
-    
     return render(request, 'examples/currency_rates.html', context)
+
+def register(request):
+    if request.method == 'POST':
+        form = UserRegisterForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('login')  # перенаправление на страницу логина после регистрации
+    else:
+        form = UserRegisterForm()
+    
+    return render(request, 'register.html', {'form': form})
+    
 
 
 # === ПАГИНАЦИЯ ДЛЯ ВАКАНСИЙ ===
