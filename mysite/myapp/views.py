@@ -1,7 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.contrib.auth import authenticate
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
@@ -783,3 +784,44 @@ def mark_message_read_api(request, message_id):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_POST
+def registrate(request: HttpRequest) -> HttpResponse:
+    email = request.POST.get('email')
+    username = request.POST.get('username')
+    password = request.POST.get('password')
+    name = request.POST.get('name')
+    surname = request.POST.get('surname')
+
+    if User.objects.get(email = email) or User.objects.get(username = username):
+        return
+    
+    user = User(
+        email = email,
+        username = username,
+        password = password,
+        first_name = name,
+        last_name = surname,
+    )
+
+    user.save()
+
+    authenticate(
+        username = username,
+        password = password,
+    )
+
+
+@require_POST
+def login(request: HttpRequest) -> HttpResponse:
+    username = request.POST.get('username')
+    password = request.POST.get('password')
+
+    if not User.objects.get(username = username):
+        return
+
+    user = authenticate(
+        username = username,
+        password = password,
+    )
