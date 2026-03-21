@@ -13,11 +13,11 @@ from .models import Vacancy, FreelanceTask, Interaction, ChatRoom, Message, Noti
 from myapp.models import FreelanceTask, Currency
 from myapp.currency_service import CurrencyService
 import json
+from .forms import UserRegisterForm
 
 def index(request):
     """Главная страница"""
     return render(request, 'index.html')
-from .forms import UserRegisterForm
 
 def vacancy_detail(request, pk):
     vacancy = get_object_or_404(Vacancy, pk=pk)
