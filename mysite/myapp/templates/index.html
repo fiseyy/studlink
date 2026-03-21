@@ -228,42 +228,5 @@
 {% endblock main %}
 
 {% block footer %}
-<footer class="footer">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-md-6">
-                <div class="footer-brand">
-                    <h3 class="footer-title"><span class="footer-Stud">Stud</span><span class="footer-Link">Link</span></h3>
-                    <p class="footer-description">Твоя первая работа начинается здесь</p>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="footer-social-minimal">
-                    <span class="social-text">Мы в соцсетях:</span>
-                    <div class="social-icons">
-                        <a href="#" class="social-icon" aria-label="ВКонтакте">
-                            <i class="bi bi-chat-dots"></i>
-                        </a>
-                        <a href="#" class="social-icon" aria-label="Telegram">
-                            <i class="bi bi-telegram"></i>
-                        </a>
-                        <a href="#" class="social-icon" aria-label="GitHub">
-                            <i class="bi bi-github"></i>
-                        </a>
-                        <a href="#" class="social-icon" aria-label="Discord">
-                            <i class="bi bi-discord"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="row mt-3">
-            <div class="col-12">
-                <div class="footer-bottom">
-                    <p class="footer-copyright">&copy; 2026 StudLink. Все права защищены.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</footer>
+{% include "footer.html" %}
 {% endblock footer %}

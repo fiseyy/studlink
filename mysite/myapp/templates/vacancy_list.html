@@ -9,7 +9,7 @@
 <div class="filters-section" id="filters-section">
     <div class="form-group">
         <label for="search-input">Поиск по вакансиям:</label>
-        <input type="text" id="search-input" placeholder="Введите название вакансии или ключевые слова...">
+        <input type="text" id="search-input" placeholder="Введите название вакансии или ключевые слова..." value="{{ search_query }}">
     </div>
     <div class="form-group">
         <label for="sort-select">Сортировка:</label>
@@ -30,26 +30,15 @@
 <div class="item-card">
     <div class="item-title">{{ item.title }}</div>
     <div class="item-meta">
-        <div><strong>Работодатель:</strong> {{ item.employer.username }}</div>
-        <div><strong>Дата публикации:</strong> {{ item.created_at|date:"d.m.Y H:i" }}</div>
-        <div><strong>Срок действия:</strong> {{ item.expiration|date:"d.m.Y H:i" }}</div>
         {% if item.salary_from %}
-            <div><strong>Зарплата:</strong> 
-                {{ item.salary_from|floatformat:0 }} {{ item.currency.symbol }}
-                {% if item.salary_to %}
-                    - {{ item.salary_to|floatformat:0 }} {{ item.currency.symbol }}
-                {% endif %}
+            <div class="salary-large">
+                {{ item.salary_from|floatformat:0 }}{% if item.salary_to %}-{{ item.salary_to|floatformat:0 }}{% endif %} {{ item.currency.symbol }}
             </div>
         {% endif %}
         <div><strong>Просмотров:</strong> {{ item.views_count }}</div>
     </div>
     <div class="item-actions">
         <a href="{% url 'vacancy_detail' item.id %}" class="btn btn-primary btn-sm">Подробнее</a>
-        {% if user.is_authenticated %}
-            <button class="btn btn-outline-secondary btn-sm" onclick="applyToVacancy({{ item.id }})">Откликнуться</button>
-        {% else %}
-            <button class="btn btn-outline-secondary btn-sm" onclick="showLoginRequired()">Откликнуться</button>
-        {% endif %}
         <button class="btn btn-outline-secondary btn-sm" onclick="saveVacancy({{ item.id }})">Сохранить</button>
     </div>
 </div>

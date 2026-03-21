@@ -42,15 +42,7 @@
 <div class="item-card">
     <div class="item-title">{{ item.title }}</div>
     <div class="item-meta">
-        <div><strong>Создатель:</strong> {{ item.creator.username }}</div>
-        {% if item.executor %}
-            <div><strong>Исполнитель:</strong> {{ item.executor.username }}</div>
-        {% else %}
-            <div><strong>Исполнитель:</strong> <span class="text-muted">Не назначен</span></div>
-        {% endif %}
-        <div><strong>Дата создания:</strong> {{ item.created_at|date:"d.m.Y H:i" }}</div>
-        <div><strong>Дедлайн:</strong> {{ item.deadline|date:"d.m.Y H:i" }}</div>
-        <div><strong>Стоимость:</strong> 
+        <div class="cost-large">
             <span id="cost-{{ item.id }}-{{ selected_currency }}">
                 {{ item.cost|floatformat:0 }} {{ item.currency.symbol }}
             </span>

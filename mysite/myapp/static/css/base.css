@@ -1,3 +1,27 @@
 body {
     margin: 0px;
 }
+
+/* Увеличенный размер для зарплаты во вакансиях */
+.salary-large {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 10px;
+}
+
+/* Увеличенный размер для стоимости в фриланс-задачах */
+.cost-large {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 10px;
+}
+
+/* Увеличенный размер для бюджета в проектах */
+.budget-large {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 10px;
+}

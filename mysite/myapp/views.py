@@ -249,6 +249,7 @@ def freelance_task_list(request):
     search_query = request.GET.get('search', '')
     sort_by = request.GET.get('sort', 'deadline')
     page_size = request.GET.get('page_size', 10)
+    currency_code = request.GET.get('currency', 'RUB')
     
     # Фильтрация задач
     tasks = FreelanceTask.objects.select_related('creator', 'executor', 'currency').prefetch_related('interactions')
@@ -277,7 +278,6 @@ def freelance_task_list(request):
     # Проверка на пустой список
     if not tasks.exists():
         currencies = Currency.objects.all().order_by('code')
-        selected_currency = request.GET.get('currency', 'RUB')
         
         context = {
             'page_obj': None,
@@ -287,7 +287,7 @@ def freelance_task_list(request):
             'search_query': search_query,
             'sort_by': sort_by,
             'currencies': currencies,
-            'selected_currency': selected_currency,
+            'selected_currency': currency_code,
         }
         return render(request, 'freelance_task_list.html', context)
     
@@ -307,7 +307,6 @@ def freelance_task_list(request):
     
     # Получаем доступные валюты для конвертации
     currencies = Currency.objects.all().order_by('code')
-    selected_currency = request.GET.get('currency', 'RUB')
     
     context = {
         'page_obj': page_obj,
@@ -317,7 +316,7 @@ def freelance_task_list(request):
         'search_query': search_query,
         'sort_by': sort_by,
         'currencies': currencies,
-        'selected_currency': selected_currency,
+        'selected_currency': currency_code,
     }
     
     return render(request, 'freelance_task_list.html', context)
