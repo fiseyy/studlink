@@ -1,0 +1,402 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Резюме{% endblock title %}
+
+{% block head %}
+<style>
+  .resume-hero {
+    background: radial-gradient(1200px circle at 20% 10%, rgba(13,110,253,.12), transparent 40%),
+                radial-gradient(900px circle at 90% 30%, rgba(32,201,151,.10), transparent 45%);
+    border: 1px solid rgba(0,0,0,.075);
+  }
+  .resume-sticky {
+    position: sticky;
+    top: 1rem;
+  }
+  .tag-badge { cursor: default; }
+</style>
+{% endblock head %}
+
+{% block main %}
+<div class="container py-4">
+  {#
+    Resume Constructor ("окно резюме")
+
+    Это не классическая HTML-форма.
+    - Поля заполняются как обычные <input>/<select>/<textarea>.
+    - JS каждые 3 секунды собирает значения (collectData) и отправляет JSON на /api/save-resume/.
+    - В правой колонке отображается live preview (updatePreview), чтобы пользователь видел, как будет выглядеть резюме.
+    - Вверху статус сохранения (saveStatus): есть изменения / сохранение / сохранено / ошибка.
+
+    Backend:
+      - Страница: views.resume_form -> рендерит resume_form.html и передаёт объект `resume`.
+      - Автосейв: views.save_resume (DRF) принимает JSON и обновляет Resume в базе.
+  #}
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h1 class="h3 mb-1">Конструктор резюме</h1>
+      <div class="text-muted">Автосохранение каждые несколько секунд</div>
+    </div>
+    <div class="text-end">
+      <span id="saveStatus" class="badge text-bg-secondary">Не сохранено</span>
+      <div class="small text-muted mt-1">Ваш профиль: <a href="/u/{{ request.user.username }}/" target="_blank">/u/{{ request.user.username }}/</a></div>
+      <div class="mt-2 d-flex gap-2 justify-content-end">
+        <a class="btn btn-outline-primary btn-sm" href="/u/{{ request.user.username }}/" target="_blank">
+          <i class="bi bi-eye me-1"></i>Посмотреть
+        </a>
+        <button class="btn btn-outline-secondary btn-sm" type="button" onclick="window.open('/u/{{ request.user.username }}/', '_blank'); setTimeout(() => window.print(), 350);">
+          <i class="bi bi-printer me-1"></i>Печать
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12 col-lg-8">
+
+      <div class="accordion" id="resumeAccordion">
+
+        <!-- Основная информация -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="hMain">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#cMain" aria-expanded="true" aria-controls="cMain">
+              Основная информация
+            </button>
+          </h2>
+          <div id="cMain" class="accordion-collapse collapse show" aria-labelledby="hMain" data-bs-parent="#resumeAccordion">
+            <div class="accordion-body">
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label">ФИО</label>
+                  <input id="full_name" class="form-control" placeholder="Иванов Иван Иванович" value="{{ resume.full_name|default:'' }}">
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label">Желаемая должность</label>
+                  <input id="position" class="form-control" placeholder="Backend-разработчик" value="{{ resume.position|default:'' }}">
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Занятость</label>
+                  <select id="employment" class="form-select">
+                    {% with v=resume.employment|default:'' %}
+                      <option value="" {% if v == '' %}selected{% endif %}>Не выбрано</option>
+                      <option value="Полная" {% if v == 'Полная' %}selected{% endif %}>Полная</option>
+                      <option value="Частичная" {% if v == 'Частичная' %}selected{% endif %}>Частичная</option>
+                      <option value="Стажировка" {% if v == 'Стажировка' %}selected{% endif %}>Стажировка</option>
+                    {% endwith %}
+                  </select>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <label class="form-label">График</label>
+                  <select id="work_schedule" class="form-select">
+                    {% with v=resume.work_schedule|default:'' %}
+                      <option value="" {% if v == '' %}selected{% endif %}>Не выбрано</option>
+                      <option value="Полный день" {% if v == 'Полный день' %}selected{% endif %}>Полный день</option>
+                      <option value="Удаленно" {% if v == 'Удаленно' %}selected{% endif %}>Удаленно</option>
+                      <option value="Гибкий график" {% if v == 'Гибкий график' %}selected{% endif %}>Гибкий график</option>
+                    {% endwith %}
+                  </select>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Желаемая зарплата</label>
+                  <input id="salary" class="form-control" inputmode="numeric" placeholder="150000" value="{% if resume.salary %}{{ resume.salary }}{% endif %}">
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Валюта</label>
+                  <select id="currency" class="form-select">
+                    {% with v=resume.currency|default:'RUB' %}
+                      <option value="RUB" {% if v == 'RUB' %}selected{% endif %}>₽ RUB</option>
+                      <option value="USD" {% if v == 'USD' %}selected{% endif %}>$ USD</option>
+                      <option value="EUR" {% if v == 'EUR' %}selected{% endif %}>€ EUR</option>
+                    {% endwith %}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Личная информация -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="hPersonal">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cPersonal" aria-expanded="false" aria-controls="cPersonal">
+              Личная информация
+            </button>
+          </h2>
+          <div id="cPersonal" class="accordion-collapse collapse" aria-labelledby="hPersonal" data-bs-parent="#resumeAccordion">
+            <div class="accordion-body">
+              <div class="row g-3">
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Гражданство</label>
+                  <input id="citizenship" class="form-control" placeholder="Россия" value="{{ resume.citizenship|default:'' }}">
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Дата рождения</label>
+                  <input type="date" id="birth_date" class="form-control" value="{% if resume.birth_date %}{{ resume.birth_date|date:'Y-m-d' }}{% endif %}">
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Пол</label>
+                  <select id="gender" class="form-select">
+                    {% with v=resume.gender|default:'' %}
+                      <option value="" {% if v == '' %}selected{% endif %}>Не выбрано</option>
+                      <option value="Мужской" {% if v == 'Мужской' %}selected{% endif %}>Мужской</option>
+                      <option value="Женский" {% if v == 'Женский' %}selected{% endif %}>Женский</option>
+                    {% endwith %}
+                  </select>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Город проживания</label>
+                  <input id="city" class="form-control" placeholder="Москва" value="{{ resume.city|default:'' }}">
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Переезд</label>
+                  <select id="relocation" class="form-select">
+                    {% with v=resume.relocation|default:'' %}
+                      <option value="" {% if v == '' %}selected{% endif %}>Не выбрано</option>
+                      <option value="Невозможен переезд" {% if v == 'Невозможен переезд' %}selected{% endif %}>Невозможен</option>
+                      <option value="Возможен переезд" {% if v == 'Возможен переезд' %}selected{% endif %}>Возможен</option>
+                    {% endwith %}
+                  </select>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Семейное положение</label>
+                  <select id="family_status" class="form-select">
+                    {% with v=resume.family_status|default:'' %}
+                      <option value="" {% if v == '' %}selected{% endif %}>Не выбрано</option>
+                      <option value="Женат / Замужем" {% if v == 'Женат / Замужем' %}selected{% endif %}>Женат / Замужем</option>
+                      <option value="Холост" {% if v == 'Холост' %}selected{% endif %}>Холост</option>
+                    {% endwith %}
+                  </select>
+                </div>
+
+                <div class="col-12">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="children" {% if resume.children %}checked{% endif %}>
+                    <label class="form-check-label" for="children">У меня есть дети</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Навыки -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="hSkills">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cSkills" aria-expanded="false" aria-controls="cSkills">
+              Навыки
+            </button>
+          </h2>
+          <div id="cSkills" class="accordion-collapse collapse" aria-labelledby="hSkills" data-bs-parent="#resumeAccordion">
+            <div class="accordion-body">
+              <label class="form-label">Добавьте навыки (Enter)</label>
+              <input id="skillInput" class="form-control" placeholder="Например: Django, PostgreSQL, Git">
+              <div class="mt-3 d-flex flex-wrap gap-2" id="skills"></div>
+              <div class="form-text">Пока сохраняем только базовые поля резюме; навыки можно подключить следующими шагами.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- О себе -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="hAbout">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cAbout" aria-expanded="false" aria-controls="cAbout">
+              О себе
+            </button>
+          </h2>
+          <div id="cAbout" class="accordion-collapse collapse" aria-labelledby="hAbout" data-bs-parent="#resumeAccordion">
+            <div class="accordion-body">
+              <label class="form-label">Коротко о себе</label>
+              <textarea id="about" class="form-control" rows="5" placeholder="Опишите ваш опыт, интересы и цели">{{ resume.about|default:'' }}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Дополнительное -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="hExtra">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cExtra" aria-expanded="false" aria-controls="cExtra">
+              Дополнительно
+            </button>
+          </h2>
+          <div id="cExtra" class="accordion-collapse collapse" aria-labelledby="hExtra" data-bs-parent="#resumeAccordion">
+            <div class="accordion-body">
+              <div class="row g-2">
+                <div class="col-12">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="army_service" {% if resume.army_service %}checked{% endif %}>
+                    <label class="form-check-label" for="army_service">Служба в армии</label>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="medical_book" {% if resume.medical_book %}checked{% endif %}>
+                    <label class="form-check-label" for="medical_book">Медицинская книжка</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-4">
+      <div class="resume-sticky">
+        <div class="card resume-hero shadow-sm">
+          <div class="card-body">
+            <div class="d-flex align-items-center gap-3">
+              <img src="{% static 'assets/images/default_avatar.png' %}" class="rounded-circle" width="56" height="56" alt="avatar">
+              <div>
+                <div id="previewName" class="fw-semibold">{{ resume.full_name|default:request.user.username }}</div>
+                <div id="previewPosition" class="text-muted">{{ resume.position|default:'Должность не указана' }}</div>
+              </div>
+            </div>
+            <hr>
+            <div class="small text-muted">Город</div>
+            <div id="previewCity" class="mb-3">{{ resume.city|default:'—' }}</div>
+            <div class="small text-muted">Занятость</div>
+            <div id="previewEmployment" class="mb-3">{{ resume.employment|default:'—' }}</div>
+            <div class="small text-muted">Ожидаемая зарплата</div>
+            <div id="previewSalary">{% if resume.salary %}{{ resume.salary }} {{ resume.currency }}{% else %}—{% endif %}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock main %}
+
+{% block footer %}
+  {% include "footer.html" %}
+{% endblock footer %}
+
+{% block scripts %}
+<script>
+  // === CSRF helper ===
+  // Django uses CSRF protection for session-authenticated requests.
+  // We read csrftoken from cookies and send it as X-CSRFToken.
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+
+  // === Save status badge ===
+  const saveStatusEl = document.getElementById('saveStatus');
+  function setStatus(kind, text) {
+    const map = {
+      idle: 'text-bg-secondary',
+      saving: 'text-bg-warning',
+      ok: 'text-bg-success',
+      err: 'text-bg-danger',
+    };
+    saveStatusEl.className = `badge ${map[kind] || map.idle}`;
+    saveStatusEl.textContent = text;
+  }
+
+  // === Collect form state into JSON ===
+  // IMPORTANT: Keys here must match fields processed in views.save_resume.
+  function collectData() {
+    return {
+      full_name: document.getElementById('full_name').value,
+      position: document.getElementById('position').value,
+      employment: document.getElementById('employment').value,
+      work_schedule: document.getElementById('work_schedule').value,
+      salary: document.getElementById('salary').value,
+      currency: document.getElementById('currency').value,
+      citizenship: document.getElementById('citizenship').value,
+      birth_date: document.getElementById('birth_date').value,
+      gender: document.getElementById('gender').value,
+      city: document.getElementById('city').value,
+      relocation: document.getElementById('relocation').value,
+      family_status: document.getElementById('family_status').value,
+      children: document.getElementById('children').checked,
+      about: document.getElementById('about').value,
+      army_service: document.getElementById('army_service').checked,
+      medical_book: document.getElementById('medical_book').checked,
+    };
+  }
+
+  // === Update right-column preview ===
+  function updatePreview() {
+    const data = collectData();
+    document.getElementById('previewName').textContent = data.full_name || '{{ request.user.username }}';
+    document.getElementById('previewPosition').textContent = data.position || 'Должность не указана';
+    document.getElementById('previewCity').textContent = data.city || '—';
+    document.getElementById('previewEmployment').textContent = data.employment || '—';
+    const salary = (data.salary && data.salary.trim()) ? `${data.salary} ${data.currency}` : '—';
+    document.getElementById('previewSalary').textContent = salary;
+  }
+
+  // === Auto-save ===
+  // lastPayload prevents sending identical payload repeatedly.
+  let lastPayload = null;
+  async function autoSave() {
+    const data = collectData();
+    const payload = JSON.stringify(data);
+    if (payload === lastPayload) return;
+
+    const csrfToken = getCookie('csrftoken');
+    setStatus('saving', 'Сохранение...');
+
+    try {
+      const res = await fetch('/api/save-resume/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {})
+        },
+        credentials: 'same-origin',
+        body: payload,
+      });
+
+      if (!res.ok) {
+        setStatus('err', `Ошибка ${res.status}`);
+        return;
+      }
+      lastPayload = payload;
+      setStatus('ok', 'Сохранено');
+    } catch (e) {
+      setStatus('err', 'Ошибка сети');
+    }
+  }
+
+  // Автосохранение (каждые 3 сек)
+  setInterval(autoSave, 3000);
+
+  // Обновляем превью по мере ввода + помечаем статус как "Есть изменения"
+  document.addEventListener('input', () => {
+    updatePreview();
+    setStatus('idle', 'Есть изменения');
+  });
+  updatePreview();
+
+  // Навыки (только UI)
+  // Сейчас навыки НЕ сохраняются в базу: это просто демонстрация интерфейса.
+  const skillsEl = document.getElementById('skills');
+  const skillInput = document.getElementById('skillInput');
+  skillInput.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const value = (skillInput.value || '').trim();
+    if (!value) return;
+
+    const badge = document.createElement('span');
+    badge.className = 'badge rounded-pill text-bg-primary tag-badge';
+    badge.textContent = value;
+    badge.title = 'Нажмите, чтобы удалить';
+    badge.style.cursor = 'pointer';
+    badge.addEventListener('click', () => badge.remove());
+    skillsEl.appendChild(badge);
+    skillInput.value = '';
+  });
+</script>
+{% endblock scripts %}

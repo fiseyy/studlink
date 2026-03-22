@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Резюме — {{ resume.full_name|default:resume.user.username }}{% endblock title %}
+
+{% block head %}
+<style>
+  /* Лёгкая полировка поверх Bootstrap (минимум кастома) */
+  .resume-hero {
+    background: radial-gradient(1200px circle at 20% 10%, rgba(13,110,253,.15), transparent 40%),
+                radial-gradient(900px circle at 90% 30%, rgba(32,201,151,.12), transparent 45%);
+    border: 1px solid rgba(0,0,0,.075);
+  }
+  .resume-section-title {
+    letter-spacing: .02em;
+  }
+  .resume-meta i { width: 1.2rem; display: inline-block; }
+  @media print {
+    nav, footer, .resume-actions { display: none !important; }
+    main { padding: 0 !important; }
+    .container { max-width: 100% !important; }
+    .card { box-shadow: none !important; }
+  }
+</style>
+{% endblock head %}
+
+{% block main %}
+<div class="container py-4">
+  {#
+    Public Resume page
+
+    Назначение:
+      Публичное представление резюме пользователя: /u/<username>/
+      Страница предназначена для работодателей/просмотра/печати.
+
+    Особенности:
+      - Bootstrap layout (cards + responsive grid)
+      - Print-friendly режим: @media print скрывает навбар/футер/кнопки и убирает тени.
+      - Данные берутся из модели Resume, которая заполняется через конструктор /resume/.
+  #}
+  <div class="d-flex justify-content-between align-items-start gap-3 mb-3 resume-actions">
+    <div>
+      <a href="/resume/" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-pencil-square me-1"></i>Редактировать
+      </a>
+      <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+        <i class="bi bi-printer me-1"></i>Печать / PDF
+      </button>
+    </div>
+    <div class="text-end small text-muted">
+      Обновлено: {{ resume.updated_at|date:"d.m.Y H:i" }}
+    </div>
+  </div>
+
+  <div class="card resume-hero shadow-sm mb-4">
+    <div class="card-body p-4">
+      <div class="row g-4 align-items-center">
+        <div class="col-auto">
+          <img src="{% static 'assets/images/default_avatar.png' %}" class="rounded-circle border" width="84" height="84" alt="avatar">
+        </div>
+        <div class="col">
+          <h1 class="h3 mb-1">{{ resume.full_name|default:resume.user.username }}</h1>
+          <div class="text-muted fs-5">{{ resume.position|default:"Должность не указана" }}</div>
+
+          <div class="resume-meta mt-3 d-flex flex-wrap gap-3 text-body-secondary">
+            <div>
+              <i class="bi bi-geo-alt"></i>
+              <span>{{ resume.city|default:"Город не указан" }}</span>
+            </div>
+            {% if resume.employment %}
+            <div>
+              <i class="bi bi-briefcase"></i>
+              <span>{{ resume.employment }}</span>
+            </div>
+            {% endif %}
+            {% if resume.work_schedule %}
+            <div>
+              <i class="bi bi-clock"></i>
+              <span>{{ resume.work_schedule }}</span>
+            </div>
+            {% endif %}
+            <div>
+              <i class="bi bi-cash-coin"></i>
+              <span>
+                {% if resume.salary %}
+                  {{ resume.salary }} {{ resume.currency }}
+                {% else %}
+                  Зарплата не указана
+                {% endif %}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-auto">
+          <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
+            {% if resume.relocation %}
+              <span class="badge rounded-pill text-bg-light border">
+                <i class="bi bi-truck me-1"></i>{{ resume.relocation }}
+              </span>
+            {% endif %}
+            {% if resume.children %}
+              <span class="badge rounded-pill text-bg-light border">
+                <i class="bi bi-people me-1"></i>Есть дети
+              </span>
+            {% endif %}
+            {% if resume.army_service %}
+              <span class="badge rounded-pill text-bg-light border">
+                <i class="bi bi-shield-check me-1"></i>Армия
+              </span>
+            {% endif %}
+            {% if resume.medical_book %}
+              <span class="badge rounded-pill text-bg-light border">
+                <i class="bi bi-journal-medical me-1"></i>Мед.книжка
+              </span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12 col-lg-8">
+      <div class="card shadow-sm mb-4">
+        <div class="card-body p-4">
+          <h2 class="h5 resume-section-title mb-3">
+            <i class="bi bi-person-lines-fill me-2"></i>О себе
+          </h2>
+          {% if resume.about %}
+            <div class="text-body" style="white-space: pre-wrap;">{{ resume.about }}</div>
+          {% else %}
+            <div class="text-muted">Описание пока не заполнено.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-body p-4">
+          <h2 class="h5 resume-section-title mb-3">
+            <i class="bi bi-info-circle me-2"></i>Личная информация
+          </h2>
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <div class="text-muted small">Гражданство</div>
+              <div>{{ resume.citizenship|default:"—" }}</div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="text-muted small">Дата рождения</div>
+              <div>
+                {% if resume.birth_date %}{{ resume.birth_date|date:"d.m.Y" }}{% else %}—{% endif %}
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="text-muted small">Пол</div>
+              <div>{{ resume.gender|default:"—" }}</div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="text-muted small">Семейное положение</div>
+              <div>{{ resume.family_status|default:"—" }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-4">
+      <div class="card shadow-sm mb-4">
+        <div class="card-body p-4">
+          <h2 class="h6 resume-section-title mb-3 text-uppercase text-muted">Профиль</h2>
+          <div class="d-flex flex-column gap-2">
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">Пользователь</span>
+              <span class="fw-semibold">{{ resume.user.username }}</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">Ссылка</span>
+              <a class="fw-semibold text-decoration-none" href="/u/{{ resume.user.username }}/">/u/{{ resume.user.username }}/</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-body p-4">
+          <h2 class="h6 resume-section-title mb-3 text-uppercase text-muted">Навыки</h2>
+          <div class="text-muted small mb-2">(пока не подключены к сохранению)</div>
+          <div class="d-flex flex-wrap gap-2">
+            <span class="badge text-bg-primary">Django</span>
+            <span class="badge text-bg-primary">PostgreSQL</span>
+            <span class="badge text-bg-primary">REST</span>
+            <span class="badge text-bg-primary">Git</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock main %}
+
+{% block footer %}
+  {% include "footer.html" %}
+{% endblock footer %}

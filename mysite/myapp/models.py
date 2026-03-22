@@ -201,3 +201,75 @@ class Notification(models.Model):
         self.is_read = True
         self.read_at = timezone.now()
         self.save()
+
+
+#резюме
+
+class Resume(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+
+    full_name = models.CharField(max_length=255, blank=True)
+    position = models.CharField(max_length=255, blank=True)
+    employment = models.CharField(max_length=100, blank=True)
+
+    salary = models.IntegerField(null=True, blank=True)
+    currency = models.CharField(max_length=10, default="RUB")
+
+    work_schedule = models.CharField(max_length=100, blank=True)
+
+    city = models.CharField(max_length=100, blank=True)
+    citizenship = models.CharField(max_length=100, blank=True)
+    birth_date = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=20, blank=True)
+
+    relocation = models.CharField(max_length=100, blank=True)
+    family_status = models.CharField(max_length=100, blank=True)
+    children = models.BooleanField(default=False)
+
+    about = models.TextField(blank=True)
+
+    army_service = models.BooleanField(default=False)
+    medical_book = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.full_name} ({self.user.username})"
+
+
+class Experience(models.Model):
+    resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name="experiences")
+    company = models.CharField(max_length=255)
+    position = models.CharField(max_length=255)
+
+
+class Education(models.Model):
+    resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name="education")
+    university = models.CharField(max_length=255)
+    specialty = models.CharField(max_length=255)
+
+
+class Skill(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class ResumeSkill(models.Model):
+    TYPE = (
+        ("professional", "Professional"),
+        ("general", "General"),
+        ("personal", "Personal"),
+    )
+
+    resume = models.ForeignKey(Resume, on_delete=models.CASCADE)
+    skill = models.ForeignKey(Skill, on_delete=models.CASCADE)
+    type = models.CharField(max_length=20, choices=TYPE)
+
+
+class SocialLink(models.Model):
+    resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name="socials")
+    network = models.CharField(max_length=100)
+    url = models.URLField()

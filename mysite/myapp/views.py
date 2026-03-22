@@ -4,6 +4,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.dateparse import parse_date
 from django.utils import timezone
 from django.db.models import Q
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -136,6 +138,159 @@ class PasswordResetConfirmView(View):
 def logout_account(request):
     logout(request)
     return JsonResponse({'message': 'Logout successful!'}, status=200)
+
+
+
+@ensure_csrf_cookie
+def resume_form(request):
+    """Resume constructor page (HTML).
+
+    URL:
+        /resume/
+
+    Purpose:
+        Shows the resume "constructor" (accordion with fields + live preview) for the current user.
+        The page itself does NOT submit a classic HTML form. Instead, the browser periodically sends
+        JSON to /api/save-resume/ (auto-save) and the backend stores it in the Resume model.
+
+    Auth:
+        Requires authenticated user. The project does not define LOGIN_URL, so we use a manual check
+        and redirect to the auth page.
+
+    Context:
+        resume: Resume instance, ensured to exist via get_or_create.
+    """
+    # Резюме привязано к пользователю, поэтому анонимному пользователю здесь делать нечего.
+    # Не используем @login_required, потому что в проекте не задан LOGIN_URL (иначе будет редирект на /accounts/login/).
+    if not request.user.is_authenticated:
+        return redirect('auth')
+
+    resume, _ = Resume.objects.get_or_create(user=request.user)
+    return render(request, "resume_form.html", {"resume": resume})
+
+from .models import Resume
+
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import permission_classes
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def save_resume(request):
+    """Auto-save API endpoint for the resume constructor.
+
+    URL:
+        POST /api/save-resume/
+
+    Auth:
+        DRF IsAuthenticated. Uses session auth in browser context.
+        resume_form page sets CSRF cookie (@ensure_csrf_cookie) and frontend sends X-CSRFToken.
+
+    Input:
+        JSON payload with Resume fields (see resume_form.html -> collectData()).
+        Example:
+            {
+              "full_name": "Иванов Иван",
+              "position": "Backend Developer",
+              "employment": "Полная",
+              "work_schedule": "Удаленно",
+              "salary": "150000",
+              "currency": "RUB",
+              "city": "Москва",
+              "birth_date": "2000-01-01",
+              "children": false,
+              "about": "...",
+              "army_service": false,
+              "medical_book": false
+            }
+
+    Output:
+        200 {"status": "saved"}
+    """
+    user = request.user
+    data = request.data
+
+    resume, _ = Resume.objects.get_or_create(user=user)
+
+    # Основные поля
+    resume.full_name = data.get("full_name", "")
+    resume.position = data.get("position", "")
+    resume.employment = data.get("employment", "")
+    resume.work_schedule = data.get("work_schedule", "")
+
+    # Числа/даты
+    salary_raw = data.get("salary")
+    try:
+        resume.salary = int(salary_raw) if salary_raw not in (None, "") else None
+    except (TypeError, ValueError):
+        resume.salary = None
+
+    resume.birth_date = parse_date(data.get("birth_date") or "")
+
+    # Прочее
+    resume.currency = data.get("currency", resume.currency or "RUB")
+    resume.city = data.get("city", "")
+    resume.citizenship = data.get("citizenship", "")
+    resume.gender = data.get("gender", "")
+    resume.relocation = data.get("relocation", "")
+    resume.family_status = data.get("family_status", "")
+
+    resume.children = bool(data.get("children", False))
+    resume.about = data.get("about", "")
+
+    resume.army_service = bool(data.get("army_service", False))
+    resume.medical_book = bool(data.get("medical_book", False))
+
+    resume.save()
+
+    return Response({"status": "saved"}, status=status.HTTP_200_OK)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def public_resume(request, username):
+    """Public resume page (HTML).
+
+    URL:
+        /u/<username>/
+
+    Purpose:
+        Renders a "clean" resume view for sharing with employers.
+        Uses Bootstrap layout and includes a print-friendly mode (to PDF).
+
+    Notes:
+        If the user has no resume yet, this view returns 404 (get_object_or_404).
+        You can change behavior to auto-create an empty resume if needed.
+    """
+    user = get_object_or_404(User, username=username)
+    resume = get_object_or_404(Resume, user=user)
+
+    return render(request, "public_resume.html", {"resume": resume})
+
+
+
+
+
+
+
 
 
 #----MAIN PAGE----
