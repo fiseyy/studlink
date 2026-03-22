@@ -15,7 +15,12 @@
         </div>
             <div class="nav-right d-flex justify-content-end align-items-center">
                 {% if user.is_authenticated %}
-                    <img class="profile-image" src="{% static "assets/images/default_avatar.png" %}" alt="">
+                    <img class="profile-image" src="{% static "assets/images/default_avatar.png" %}" alt="" id="profile-avatar">
+                    <div class="dropdown-menu" id="dropdown-menu">
+                        <a href="{% url 'chat_list' %}" class="dropdown-link">Мессенджер</a>
+                        <a href="#" class="dropdown-link">Профиль</a>
+                        <a href="{% url 'logout' %}" class="dropdown-link">Выйти</a>
+                    </div>
                 {% else %}
                     <a href="{% url 'auth' %}"><button class="nav-button login-button">Войти</button></a>
                 {% endif %}
