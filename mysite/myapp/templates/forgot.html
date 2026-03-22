@@ -2,15 +2,20 @@
 {% load static %}
 
 {% block main %}
-<link rel="stylesheet" href="{% static 'css/auth.css' %}">
 <script src="{% static 'js/main.js' %}"></script>
 <script src="{% static 'js/account_logic.js' %}"></script>
-<div class="container">
-    <form id="password-reset-form">
-        <h1>Забыли пароль?</h1>
-        <input type="email" placeholder="email" required>
-        <button id="check_account" type="submit">Проверить аккаунт</button>
-    </form>
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<div class="container d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 120px);">
+    <div class="auth-container forgot-container">
+        <div class="form-container sign-in">
+            <form id="password-reset-form">
+                <h1>Забыли пароль?</h1>
+                <span>Введите email для сброса пароля</span>
+                <input type="email" placeholder="email" required>
+                <button id="check_account" type="submit">Отправить письмо</button>
+            </form>
+        </div>
+    </div>
 </div>
 <script src="{% static 'js/forgot.js' %}"></script>
 <script>

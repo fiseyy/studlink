@@ -7,15 +7,19 @@
 <script src="{% static 'js/account_logic.js' %}"></script>
 <link rel="stylesheet" href="{% static 'css/auth.css' %}">
 
-<div class="container">
-    <form id="reset-password-form" onsubmit="resetPassword(event, '{{ uidb64 }}', '{{ token }}')">
-        <h1>Сброс пароля</h1>
-        <input type="password" id="new_password" placeholder="Новый пароль" required>
-        <input type="password" id="confirm_password" placeholder="Подтвердите новый пароль" required>
-        <button type="submit">Сбросить пароль</button>
-    </form>
+<div class="container d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 120px);">
+    <div class="auth-container reset-container">
+        <div class="form-container sign-in">
+            <form id="reset-password-form" onsubmit="resetPassword(event, '{{ uidb64 }}', '{{ token }}')">
+                <h1>Сброс пароля</h1>
+                <span>Введите новый пароль</span>
+                <input type="password" id="new_password" placeholder="Новый пароль" required>
+                <input type="password" id="confirm_password" placeholder="Подтвердите новый пароль" required>
+                <button type="submit">Сбросить пароль</button>
+            </form>
+        </div>
+    </div>
 </div>
-{% endblock %}
-{% block scripts %}
 <script src="{% static 'js/reset_password.js' %}"></script>
 {% endblock %}
+

@@ -7,10 +7,10 @@
     font-family: 'Montserrat', sans-serif;
 }
 .auth-container {
-    background-color: #060606;
+    background-color: var(--bs-body-bg);
     border-radius: 30px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--bs-border-color);
     position: relative;
     overflow: hidden;
     width: 768px;
@@ -18,30 +18,50 @@
     min-height: 480px;
 }
 
+/* Стили для страниц сброса пароля */
+.auth-container.forgot-container,
+.auth-container.reset-container {
+    width: 400px;
+    min-height: 300px;
+}
+
+.auth-container.forgot-container .form-container,
+.auth-container.reset-container .form-container {
+    width: 100%;
+    opacity: 1;
+    z-index: 2;
+    transform: translateX(0);
+}
+
+.auth-container.forgot-container .toggle-container,
+.auth-container.reset-container .toggle-container {
+    display: none;
+}
+
 .auth-container p {
     font-size: 14px;
     line-height: 20px;
     letter-spacing: 0.3px;
     margin: 20px 0;
-    color: #e0e0e0; /* Light text color */
+    color: var(--bs-body-color);
 }
 
 .auth-container span {
     font-size: 12px;
-    color: #b0b0b0; /* Light gray text */
+    color: var(--bs-secondary-color);
 }
 
 .auth-container a {
-    color: #e0e0e0; /* Light text color */
+    color: var(--bs-link-color);
     font-size: 13px;
     text-decoration: none;
     margin: 15px 0 10px;
 }
 
 .auth-container button {
-    background-color: transparent;
-    border: 2px solid rgb(1, 129, 141);
-    color: #fff;
+    background-color: var(--bs-primary-bg-subtle);
+    border: 2px solid var(--bs-primary-border-subtle);
+    color: var(--bs-primary-text-emphasis);
     font-size: 12px;
     padding: 10px 45px;
     border-radius: 8px;
@@ -52,15 +72,25 @@
     cursor: pointer;
 }
 .auth-container button:hover {
-    background-color: rgb(1, 129, 141);
+    background-color: var(--bs-primary-bg);
+    color: var(--bs-primary-text-emphasis);
 }
 .auth-container button.hidden {
     background-color: transparent;
-    border-color: #fff;
+    border: 2px solid var(--bs-primary-border-subtle);
+    color: var(--bs-primary-text-emphasis);
+    font-size: 12px;
+    padding: 10px 45px;
+    border-radius: 8px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-top: 10px;
+    cursor: pointer;
 }
 
 .auth-container form {
-    background-color: #060606; /* Darker form background */
+    background-color: var(--bs-body-bg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -70,15 +100,15 @@
 }
 
 .auth-container input {
-    background-color: #444; /* Dark input background */
-    border: none;
+    background-color: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
     margin: 8px 0;
     padding: 10px 15px;
     font-size: 13px;
     border-radius: 8px;
     width: 100%;
     outline: none;
-    color: #fff; /* White text for input */
+    color: var(--bs-body-color);
 }
 
 .form-container {
@@ -157,10 +187,10 @@
 }
 
 .toggle {
-    background-color: #060606; /* Toggle background */
+    background-color: var(--bs-body-bg);
     height: 100%;
-    background: linear-gradient(to right, rgb(0, 104, 114), rgb(3, 49, 134));
-    color: #fff;
+    background: linear-gradient(to right, var(--bs-primary-bg-subtle), var(--bs-secondary-bg-subtle));
+    color: var(--bs-body-color);
     position: relative;
     left: -100%;
     height: 100%;
