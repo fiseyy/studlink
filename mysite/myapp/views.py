@@ -911,12 +911,21 @@ def mark_message_read_api(request, message_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 # Загружаем данные
-with open("data.json", "r", encoding="utf-8") as f:
-    data = json.load(f)
-
-top_cities_ru = data["top_cities_ru"]
-job_filters = data["job_filters"]
-top_universities_ru = data["top_universities_ru"]
+try:
+    with open("data.json", "r", encoding="utf-8") as f:
+        data = json.load(f)
+    top_cities_ru = data["top_cities_ru"]
+    job_filters = data["job_filters"]
+    top_universities_ru = data["top_universities_ru"]
+except (FileNotFoundError, KeyError, json.JSONDecodeError):
+    # Если файл не найден или поврежден, используем заглушки
+    top_cities_ru = ["Москва", "Санкт-Петербург", "Новосибирск", "Екатеринбург", "Казань"]
+    job_filters = {
+        "Программирование": ["Backend-разработчик", "Frontend-разработчик", "Fullstack-разработчик", "Mobile-разработчик"],
+        "Аналитика": ["Data Analyst", "Бизнес-аналитик", "Системный аналитик"],
+        "Дизайн": ["UI/UX дизайнер", "Графический дизайнер", "Продуктовый дизайнер"]
+    }
+    top_universities_ru = ["МГУ", "СПбГУ", "МИФИ", "ВШЭ", "МФТИ"]
 
 
 # Класс поиска
