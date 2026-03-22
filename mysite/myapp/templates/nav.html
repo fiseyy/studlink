@@ -14,8 +14,11 @@
             </div>
         </div>
             <div class="nav-right d-flex justify-content-end align-items-center">
-                <img class="profile-image" src="{% static "assets/images/profile_image_tmp.jpg" %}" alt="">
-                <a href="{% url 'auth' %}"><button class="nav-button login-button">Войти</button></a>
+                {% if user.is_authenticated %}
+                    <img class="profile-image" src="{% static "assets/images/default_avatar.png" %}" alt="">
+                {% else %}
+                    <a href="{% url 'auth' %}"><button class="nav-button login-button">Войти</button></a>
+                {% endif %}
             </div>
     </div>
 </div>
