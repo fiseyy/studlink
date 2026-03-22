@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
@@ -783,3 +783,13 @@ def mark_message_read_api(request, message_id):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+def profile_general(request: HttpRequest) -> HttpResponse:
+    context = {}
+
+    context['user'] = request.user
+    context['type'] = 'general'
+
+    return render(request, 'profile/general.html', context)

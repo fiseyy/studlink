@@ -12,12 +12,12 @@
 {% block main %}
 <div class="sidebar">
     <div class="sidebar-actions">
-        <a href=""><button class="sidebar-action active">Основное</button></a>
-        <a href=""><button class="sidebar-action">Мои вакансии</button></a>
-        <a href=""><button class="sidebar-action">Мои задачи</button></a>
-        <a href=""><button class="sidebar-action">Мои резюме</button></a>
-        <a href=""><button class="sidebar-action">Мои проекты</button></a>
-        <a href=""><button class="sidebar-action">Настройки</button></a>
+        <a href="/profile/general"><button class="sidebar-action {% if type == 'general' %}active{% endif %}">Основное</button></a>
+        <a href="/profile/vacancies"><button class="sidebar-action {% if type == 'vacancies' %}active{% endif %}">Мои вакансии</button></a>
+        <a href="/profile/freelance"><button class="sidebar-action {% if type == 'freelance' %}active{% endif %}">Мои задачи</button></a>
+        <a href="/profile/resume"><button class="sidebar-action {% if type == 'resume' %}active{% endif %}">Мои резюме</button></a>
+        <a href="/profile/projects"><button class="sidebar-action {% if type == 'projects' %}active{% endif %}">Мои проекты</button></a>
+        <a href="/profile/settings"><button class="sidebar-action {% if type == 'settings' %}active{% endif %}">Настройки</button></a>
     </div>
 </div>
 <div class="content">
