@@ -169,3 +169,7 @@ EMAIL_PORT = 587  # Порт для TLS
 EMAIL_USE_TLS = True  # Используем TLS
 EMAIL_HOST_USER = 'simple.votings.dev@internet.ru'  # Ваш адрес электронной почты Mail.ru
 EMAIL_HOST_PASSWORD = 'aocpJRdPO1oujrOHO2hi'  # Ваш пароль (или пароль приложения, если включена двухфакторная аутентификация)
+
+
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'

@@ -54,4 +54,8 @@ urlpatterns = [
     path('auth/', views.auth_view, name='auth'),
     path('forgot/', views.forgot_view, name='forgot'),
     path('reset/<uidb64>/<token>/', reset_view, name='reset'),
+
+    # Проекты
+    path('api/projects/create', views.create_project),
+    path('api/projects/add_contributros', views.add_contributors)
 ]
