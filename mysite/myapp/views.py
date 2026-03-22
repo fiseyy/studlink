@@ -918,12 +918,6 @@ top_cities_ru = data["top_cities_ru"]
 job_filters = data["job_filters"]
 top_universities_ru = data["top_universities_ru"]
 
-# ПРИМЕР ВАКАНСИЙ В БД. заменить, когда бд будет существовать
-vacancies_data = [
-    {"id": 1, "title": "Backend-разработчик", "city": "Москва", "description": "Python, Django, REST"},
-    {"id": 2, "title": "Frontend-разработчик", "city": "Санкт-Петербург", "description": "React, JavaScript"},
-    {"id": 3, "title": "Data Analyst", "city": "Москва", "description": "SQL, Python, аналитика данных"},
-]
 
 # Класс поиска
 class Search:
@@ -938,7 +932,7 @@ class Search:
         return set(words)
 
     def vacancy_tokens(self, vacancy):
-        text = f"{vacancy['title']} {vacancy['description']}"
+        text = f"{vacancy.title} {vacancy.description}"
         return self.tokenize(text)
 
     def similarity(self, set1, set2):
@@ -949,17 +943,34 @@ class Search:
     def apply_filters(self, vacancies, direction=None, profession=None, city=None):
         if direction and direction in job_filters:
             professions = job_filters[direction]
-            vacancies = [v for v in vacancies if v["title"] in professions]
+            vacancies = [v for v in vacancies if v.title in professions]
         if profession:
-            vacancies = [v for v in vacancies if v["title"] == profession]
+            vacancies = [v for v in vacancies if v.title == profession]
         if city and city in top_cities_ru:
-            vacancies = [v for v in vacancies if v["city"] == city]
+            vacancies = [v for v in vacancies if v.city == city]
         return vacancies
 
     def search_vacancies(self, direction=None, profession=None, city=None, limit=20):
-        filtered = self.apply_filters(vacancies_data, direction, profession, city)
-        scored = [(v, self.similarity(self.user_tokens, self.vacancy_tokens(v))) for v in filtered]
+        # Получаем вакансии из базы данных
+        vacancies = Vacancy.objects.filter(is_active=True)
+        
+        # Применяем фильтры
+        if direction and direction in job_filters:
+            professions = job_filters[direction]
+            vacancies = vacancies.filter(title__in=professions)
+        if profession:
+            vacancies = vacancies.filter(title=profession)
+        if city and city in top_cities_ru:
+            vacancies = vacancies.filter(city=city)
+        
+        # Преобразуем в список для дальнейшей обработки
+        vacancies_list = list(vacancies)
+        
+        # Сортируем по релевантности
+        scored = [(v, self.similarity(self.user_tokens, self.vacancy_tokens(v))) for v in vacancies_list]
         scored.sort(key=lambda x: x[1], reverse=True)
+        
+        # Возвращаем отсортированные вакансии
         return [v[0] for v in scored[:limit]]
 
 
@@ -975,11 +986,9 @@ def search_api(request):
     city = request.GET.get("city")
 
     results = engine.search_vacancies(direction, profession, city)
-
-    return Response(results)
-
-
-
-
-
-
+    
+    # Сериализуем результаты
+    from .serializers import VacancySerializer
+    serializer = VacancySerializer(results, many=True)
+    
+    return Response(serializer.data)
