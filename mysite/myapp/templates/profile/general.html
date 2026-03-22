@@ -1,0 +1,19 @@
+{% extends "profile/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="avatar-div">
+    <button class="avatar-button">
+        <img class="avatar-image" src="{% static "assets/tmp.png" %}" alt="">
+    </button>
+</div>
+<div class="user-settings">
+    <div class="user-data">
+        <input class="user-field" type="text" name="username1" id="username1" value="{{ user.username }}">
+        <input class="user-field" type="text" name="name1" id="name1" value="{{ user.first_name }}">
+        <input class="user-field" type="text" name="surname1" id="surname1" value="{{ user.last_name }}">
+        <input class="user-field" type="text" name="email1" id="email1" value="{{ user.email }}">
+    </div>
+    <button class="user-save" type="submit">Сохранить</button>
+</div>
+{% endblock content %}

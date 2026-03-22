@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static "css/profile.css" %}">
+{% endblock head %}
+
+{% block nav %}
+{% include "nav.html" %}
+{% endblock nav %}
+
+{% block main %}
+<div class="sidebar">
+    <div class="sidebar-actions">
+        <a href=""><button class="sidebar-action active">Основное</button></a>
+        <a href=""><button class="sidebar-action">Мои вакансии</button></a>
+        <a href=""><button class="sidebar-action">Мои задачи</button></a>
+        <a href=""><button class="sidebar-action">Мои резюме</button></a>
+        <a href=""><button class="sidebar-action">Мои проекты</button></a>
+        <a href=""><button class="sidebar-action">Настройки</button></a>
+    </div>
+</div>
+<div class="content">
+{% block content %}{% endblock content %}
+</div>
+{% endblock main %}
