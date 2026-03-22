@@ -1002,6 +1002,31 @@ def search_api(request):
     return Response(serializer.data)
 
 
+def search_page(request):
+    """Страница поиска вакансий"""
+    # Получаем параметры поиска
+    user_query = request.GET.get("q", "")
+    direction = request.GET.get("direction", "")
+    profession = request.GET.get("profession", "")
+    city = request.GET.get("city", "")
+    
+    # Создаем экземпляр поискового движка
+    engine = Search(user_tokens=set(user_query.lower().split()))
+    
+    # Выполняем поиск
+    results = engine.search_vacancies(direction, profession, city)
+    
+    context = {
+        'results': results,
+        'user_query': user_query,
+        'direction': direction,
+        'profession': profession,
+        'city': city,
+    }
+    
+    return render(request, 'search.html', context)
+
+
 @require_POST
 @login_required
 def create_project(request: HttpRequest) -> HttpResponse:

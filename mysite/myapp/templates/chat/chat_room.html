@@ -46,7 +46,7 @@
             overflow-y: auto;
             padding: 20px;
             background-color: #f8f9fa;
-            max-height: calc(100vh - 120px); /* Учитываем высоту header и input-area */
+            max-height: calc(100vh - 120px);
         }
         
         .message {
@@ -96,8 +96,29 @@
         <div></div>
     </div>
 
+    <!-- Debug-панель (помогает понять, что JS на странице реально обновился/выполняется) -->
+    <div id="chatDebugPanel" style="
+        display:none;
+        position: fixed;
+        right: 12px;
+        top: 12px;
+        z-index: 99999;
+        background: rgba(0,0,0,0.85);
+        color: #fff;
+        font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+        padding: 10px 12px;
+        border-radius: 10px;
+        max-width: 420px;
+        white-space: pre-wrap;
+    "></div>
+
     <div class="chat-area">
-        <div class="messages-container" id="messagesContainer">
+        <div
+            class="messages-container"
+            id="messagesContainer"
+            data-room-id="{{ room.id }}"
+            data-current-user-id="{{ user.id }}"
+        >
             <!-- Сообщения будут загружены здесь -->
         </div>
 
@@ -108,12 +129,86 @@
     </div>
 
     <script>
-        let currentRoomId = {{ room.id }};
+        // ========== DEBUG ========== 
+        // Включил расширенные логи, чтобы понять:
+        // 1) точно ли выполняется этот скрипт
+        // 2) где именно меняется scrollTop каждые 3 секунды
+        const CHAT_SCRIPT_VERSION = 'chat_room.html:v4-debug-overlay-2026-03-22';
+        // Debug включаем только явно: /chat/<id>/?debug=1
+        const CHAT_DEBUG = new URLSearchParams(window.location.search).get('debug') === '1';
+
+        function debugLog(...args) {
+            if (!CHAT_DEBUG) return;
+
+            // console.warn заметнее, чем console.log (и не прячется фильтрами "Info")
+            console.warn('[chat]', CHAT_SCRIPT_VERSION, ...args);
+
+            const panel = document.getElementById('chatDebugPanel');
+            if (!panel) return;
+            panel.style.display = 'block';
+
+            const msg = args
+                .map(a => {
+                    try { return typeof a === 'string' ? a : JSON.stringify(a); }
+                    catch (e) { return String(a); }
+                })
+                .join(' ');
+
+            // Держим последние ~12 строк
+            const lines = (panel.textContent || '').split('\n').filter(Boolean);
+            lines.push(`[${new Date().toLocaleTimeString()}] ${msg}`);
+            while (lines.length > 12) lines.shift();
+            panel.textContent = `JS: ${CHAT_SCRIPT_VERSION}\n` + lines.join('\n');
+        }
+
+        const messagesContainerEl = document.getElementById('messagesContainer');
+        const currentRoomId = Number(messagesContainerEl?.dataset?.roomId);
+        const currentUserId = Number(messagesContainerEl?.dataset?.currentUserId);
+
         let messagePolling = null;
+        let pollingTick = 0;
+
+        // --- Сохранение/восстановление позиции скролла ---
+        // Нужно для кейса: пользователь листает историю вверх, жмёт обновить страницу,
+        // и после загрузки его не должно перекидывать вниз.
+        const SCROLL_STORAGE_KEY = `chat_scroll_room_${currentRoomId}`;
+        let pendingScrollRestore = null; // { scrollTop: number, isAtBottom: boolean }
+        let isFirstRender = true;
+        // Если пользователь листает историю вверх — запрещаем автоскролл до низа
+        // (даже если остаётся близко к низу в пределах threshold).
+        let isUserReadingHistory = false;
+
+        function loadSavedScroll() {
+            try {
+                const raw = localStorage.getItem(SCROLL_STORAGE_KEY);
+                return raw ? JSON.parse(raw) : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function saveScroll() {
+            const container = document.getElementById('messagesContainer');
+            if (!container) return;
+            try {
+                localStorage.setItem(
+                    SCROLL_STORAGE_KEY,
+                    JSON.stringify({
+                        scrollTop: container.scrollTop,
+                        isAtBottom: shouldScrollToBottom()
+                    })
+                );
+            } catch (e) {
+                // ignore
+            }
+        }
 
         // Инициализация
-        document.addEventListener('DOMContentLoaded', function() {
-            loadMessages();
+        document.addEventListener('DOMContentLoaded', async function() {
+            debugLog('DOMContentLoaded', { currentRoomId, currentUserId });
+            pendingScrollRestore = loadSavedScroll();
+            debugLog('pendingScrollRestore', pendingScrollRestore);
+            await loadMessages();
             startPolling();
             
             // Обработка ввода сообщения
@@ -123,34 +218,157 @@
                     sendMessage();
                 }
             });
+            
+            // Отслеживание прокрутки
+            const container = document.getElementById('messagesContainer');
+            container.addEventListener('scroll', function () {
+                debugLog('scroll event', {
+                    scrollTop: container.scrollTop,
+                    clientHeight: container.clientHeight,
+                    scrollHeight: container.scrollHeight
+                });
+                updateScrollState();
+                debugLog('after updateScrollState', {
+                    isUserReadingHistory,
+                    isAtBottom: scrollState.isAtBottom,
+                    lastScrollTop: scrollState.lastScrollTop
+                });
+                saveScroll();
+            });
+
+            // Сохраняем позицию на случай обновления вкладки
+            window.addEventListener('beforeunload', saveScroll);
         });
 
         // Загрузка сообщений
         async function loadMessages() {
             try {
+                pollingTick += 1;
+                const container = document.getElementById('messagesContainer');
+                debugLog('loadMessages:start', {
+                    tick: pollingTick,
+                    scrollTop: container?.scrollTop,
+                    clientHeight: container?.clientHeight,
+                    scrollHeight: container?.scrollHeight
+                });
                 const response = await fetch(`/api/chat/${currentRoomId}/messages/`);
                 const data = await response.json();
+                debugLog('loadMessages:response', {
+                    tick: pollingTick,
+                    success: data?.success,
+                    messagesCount: Array.isArray(data?.messages) ? data.messages.length : null
+                });
                 
                 if (data.success) {
-                    renderMessages(data.messages);
+                    // Если пользователь читает историю (не внизу) — НЕ трогаем DOM,
+                    // чтобы скролл гарантированно не скакал при polling.
+                    updateScrollState();
+                    debugLog('loadMessages:state-before-render', {
+                        tick: pollingTick,
+                        isUserReadingHistory,
+                        isAtBottom: scrollState.isAtBottom,
+                        lastMessageId
+                    });
+
+                    if (!isUserReadingHistory) {
+                        renderMessages(data.messages);
+                    } else {
+                        debugLog('loadMessages:skip-render (reading history)', { tick: pollingTick });
+                    }
                 }
             } catch (error) {
                 console.error('Ошибка загрузки сообщений:', error);
             }
         }
 
-        // Отображение сообщений
+        // Сохранение состояния прокрутки
+        let lastMessageId = null;
+        let scrollState = {
+            isAtBottom: true,
+            lastScrollTop: 0
+        };
+
+        // Обновление состояния прокрутки
+        function updateScrollState() {
+            const container = document.getElementById('messagesContainer');
+            const threshold = 100; // порог для UI/индикаторов
+            const bottomEpsilon = 5; // «реально внизу» (почти пиксель-в-пиксель)
+            const position = container.scrollTop + container.clientHeight;
+            const height = container.scrollHeight;
+
+            scrollState.isAtBottom = position >= height - threshold;
+            scrollState.lastScrollTop = container.scrollTop;
+
+            // Логика простая и надёжная:
+            // если пользователь не в самом низу — значит он читает историю,
+            // и автоскролл при polling выключен.
+            const isAtVeryBottom = position >= height - bottomEpsilon;
+            isUserReadingHistory = !isAtVeryBottom;
+
+            debugLog('updateScrollState', {
+                scrollTop: container.scrollTop,
+                clientHeight: container.clientHeight,
+                scrollHeight: container.scrollHeight,
+                position,
+                threshold,
+                bottomEpsilon,
+                isAtBottom: scrollState.isAtBottom,
+                isAtVeryBottom,
+                isUserReadingHistory
+            });
+        }
+
+        // Проверка, нужно ли прокручивать вниз
+        function shouldScrollToBottom() {
+            const container = document.getElementById('messagesContainer');
+            if (isUserReadingHistory) return false;
+            const bottomEpsilon = 5;
+            const position = container.scrollTop + container.clientHeight;
+            const height = container.scrollHeight;
+            // Автоскроллим только если пользователь уже прямо «внизу»
+            return position >= height - bottomEpsilon;
+        }
+
+        // Отображение сообщений (добавляем только новые)
         function renderMessages(messages) {
             const container = document.getElementById('messagesContainer');
-            container.innerHTML = '';
+            // Обновим флаг «читает историю» перед вычислением wasAtBottom
+            updateScrollState();
+            // Важно: если пользователь читает историю (скролл НЕ внизу),
+            // то при приходе новых сообщений снизу нельзя сдвигать scrollTop.
+            // Иначе при каждом обновлении (polling) экран будет "прыгать" вниз.
+            const wasAtBottom = shouldScrollToBottom();
             
-            // Разворачиваем массив, чтобы новые сообщения были внизу
-            const reversedMessages = messages.slice().reverse();
+            // Сохраняем позицию ДО обновления
+            const prevScrollTop = container.scrollTop;
+            const prevScrollHeight = container.scrollHeight;
+
+            debugLog('renderMessages:before', {
+                scrollTop: prevScrollTop,
+                scrollHeight: prevScrollHeight,
+                clientHeight: container.clientHeight,
+                wasAtBottom,
+                lastMessageId
+            });
             
-            reversedMessages.forEach(message => {
+            let added = false;
+            
+            // Проходим по сообщениям в порядке от старых к новым
+            messages.forEach(message => {
+                // Пропускаем уже отображенные сообщения
+                if (lastMessageId && message.id <= lastMessageId) {
+                    return;
+                }
+                
+                // Проверяем на дубликаты
+                if (document.querySelector(`[data-message-id="${message.id}"]`)) {
+                    return;
+                }
+                
                 const div = document.createElement('div');
                 div.className = 'message';
-                if (message.sender_id === {{ user.id }}) {
+                div.setAttribute('data-message-id', message.id);
+                if (message.sender_id === currentUserId) {
                     div.classList.add('own');
                 }
                 
@@ -173,10 +391,68 @@
                 div.appendChild(header);
                 div.appendChild(content);
                 container.appendChild(div);
+                
+                added = true;
             });
             
-            // Прокрутка вниз
-            container.scrollTop = container.scrollHeight;
+            // Обновляем lastMessageId только если были новые сообщения
+            if (added && messages.length > 0) {
+                lastMessageId = Math.max(...messages.map(m => m.id));
+            }
+
+            debugLog('renderMessages:after-append', {
+                added,
+                messagesCount: messages.length,
+                newLastMessageId: lastMessageId,
+                newScrollHeight: container.scrollHeight
+            });
+
+            // Восстановление позиции после первой отрисовки (после reload)
+            if (isFirstRender && pendingScrollRestore) {
+                if (pendingScrollRestore.isAtBottom) {
+                    container.scrollTop = container.scrollHeight;
+                } else if (typeof pendingScrollRestore.scrollTop === 'number') {
+                    const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+                    container.scrollTop = Math.min(Math.max(0, pendingScrollRestore.scrollTop), maxScrollTop);
+                }
+
+                isFirstRender = false;
+                pendingScrollRestore = null;
+                updateScrollState();
+                return;
+            }
+
+            // После первого рендера больше не восстанавливаем
+            isFirstRender = false;
+            
+            // Прокручиваем вниз только если реально что-то добавилось
+            if (added) {
+                if (wasAtBottom) {
+                    // Был внизу → докручиваем до низа
+                    container.scrollTop = container.scrollHeight;
+                } else {
+                    // НЕ внизу → оставляем на том же сообщении (не двигаем скролл)
+                    container.scrollTop = prevScrollTop;
+                }
+            }
+
+            debugLog('renderMessages:after-scroll-adjust', {
+                scrollTop: container.scrollTop,
+                scrollHeight: container.scrollHeight,
+                clientHeight: container.clientHeight,
+                wasAtBottom,
+                added
+            });
+
+            // Подстрахуемся: сохраним позицию после обновления DOM
+            updateScrollState();
+            saveScroll();
+
+            debugLog('renderMessages:done', {
+                saved: true,
+                isUserReadingHistory,
+                isAtBottom: scrollState.isAtBottom
+            });
         }
 
         // Отправка сообщения

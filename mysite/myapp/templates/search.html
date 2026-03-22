@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Поиск вакансий{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>Поиск вакансий</h1>
+            
+            <!-- Форма поиска -->
+            <form method="GET" action="{% url 'search_api' %}" class="mb-4">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="q">Поиск по запросу:</label>
+                            <input type="text" name="q" id="q" class="form-control" placeholder="Введите ключевые слова...">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="direction">Направление:</label>
+                            <select name="direction" id="direction" class="form-control">
+                                <option value="">Все направления</option>
+                                <option value="Программирование">Программирование</option>
+                                <option value="Аналитика">Аналитика</option>
+                                <option value="Дизайн">Дизайн</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="profession">Профессия:</label>
+                            <select name="profession" id="profession" class="form-control">
+                                <option value="">Все профессии</option>
+                                <option value="Backend-разработчик">Backend-разработчик</option>
+                                <option value="Frontend-разработчик">Frontend-разработчик</option>
+                                <option value="Fullstack-разработчик">Fullstack-разработчик</option>
+                                <option value="Mobile-разработчик">Mobile-разработчик</option>
+                                <option value="Data Analyst">Data Analyst</option>
+                                <option value="Бизнес-аналитик">Бизнес-аналитик</option>
+                                <option value="Системный аналитик">Системный аналитик</option>
+                                <option value="UI/UX дизайнер">UI/UX дизайнер</option>
+                                <option value="Графический дизайнер">Графический дизайнер</option>
+                                <option value="Продуктовый дизайнер">Продуктовый дизайнер</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="submit" class="btn btn-primary btn-block">Найти</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Результаты поиска -->
+            <div id="search-results">
+                {% if results %}
+                    <div class="alert alert-info">
+                        Найдено {{ results|length }} вакансий
+                    </div>
+                    
+                    <div class="row">
+                        {% for vacancy in results %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ vacancy.title }}</h5>
+                                        <p class="card-text">{{ vacancy.description|truncatewords:20 }}</p>
+                                        <div class="card-meta">
+                                            <small class="text-muted">
+                                                {% if vacancy.salary_from %}
+                                                    Зарплата: {{ vacancy.salary_from }} - {{ vacancy.salary_to }} {{ vacancy.currency.symbol }}
+                                                {% endif %}
+                                                {% if vacancy.city %}
+                                                    | Город: {{ vacancy.city }}
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                        <a href="{% url 'vacancy_detail' vacancy.id %}" class="btn btn-primary btn-sm mt-2">Подробнее</a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        Введите параметры поиска для отображения результатов
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Функция для обновления результатов поиска
+    function updateSearchResults() {
+        const formData = new FormData(document.querySelector('form'));
+        const params = new URLSearchParams();
+        
+        for (let pair of formData.entries()) {
+            if (pair[1]) {
+                params.append(pair[0], pair[1]);
+            }
+        }
+        
+        if (params.toString()) {
+            fetch(`{% url 'search_api' %}?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    displayResults(data);
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                });
+        }
+    }
+    
+    // Функция для отображения результатов
+    function displayResults(data) {
+        const resultsContainer = document.getElementById('search-results');
+        
+        if (data.length === 0) {
+            resultsContainer.innerHTML = '<div class="alert alert-warning">По вашему запросу ничего не найдено</div>';
+            return;
+        }
+        
+        let html = `<div class="alert alert-info">Найдено ${data.length} вакансий</div><div class="row">`;
+        
+        data.forEach(vacancy => {
+            html += `
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">${vacancy.title}</h5>
+                            <p class="card-text">${vacancy.description.substring(0, 100)}...</p>
+                            <div class="card-meta">
+                                <small class="text-muted">
+                                    ${vacancy.salary_from ? `Зарплата: ${vacancy.salary_from} - ${vacancy.salary_to} ${vacancy.currency.symbol}` : ''}
+                                    ${vacancy.city ? `| Город: ${vacancy.city}` : ''}
+                                </small>
+                            </div>
+                            <a href="/vacancy/${vacancy.id}/" class="btn btn-primary btn-sm mt-2">Подробнее</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        resultsContainer.innerHTML = html;
+    }
+    
+    // Добавляем обработчики событий для формы
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            updateSearchResults();
+        });
+        
+        // Автоматический поиск при изменении полей
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('change', updateSearchResults);
+        });
+    });
+</script>
+{% endblock %}

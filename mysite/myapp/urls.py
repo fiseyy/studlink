@@ -15,6 +15,7 @@ urlpatterns = [
     
     #API SEARCH
     path('search/', search_api, name='search'),
+    path('search/page/', views.search_page, name='search_page'),
     
     # Страницы с пагинацией
     path('vacancies/', views.vacancy_list, name='vacancy_list'),

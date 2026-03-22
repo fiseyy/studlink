@@ -258,12 +258,58 @@
         Новые сообщения
     </div>
 
+    <!-- Debug-панель (помогает понять, что JS на странице реально обновился/выполняется) -->
+    <div id="chatDebugPanel" style="
+        display:none;
+        position: fixed;
+        right: 12px;
+        top: 12px;
+        z-index: 99999;
+        background: rgba(0,0,0,0.85);
+        color: #fff;
+        font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+        padding: 10px 12px;
+        border-radius: 10px;
+        max-width: 420px;
+        white-space: pre-wrap;
+    "></div>
+
     <script>
+        // ========== DEBUG ==========
+        // Включаем логирование по query-параметру: /chat/?debug=1
+        const CHAT_SCRIPT_VERSION = 'chat_list.html:v2-scroll-fix-debug-2026-03-22';
+        const CHAT_DEBUG = new URLSearchParams(window.location.search).get('debug') === '1';
+
+        function debugLog(...args) {
+            if (!CHAT_DEBUG) return;
+
+            console.warn('[chat]', CHAT_SCRIPT_VERSION, ...args);
+
+            const panel = document.getElementById('chatDebugPanel');
+            if (!panel) return;
+            panel.style.display = 'block';
+
+            const msg = args
+                .map(a => {
+                    try { return typeof a === 'string' ? a : JSON.stringify(a); }
+                    catch (e) { return String(a); }
+                })
+                .join(' ');
+
+            const lines = (panel.textContent || '').split('\n').filter(Boolean);
+            lines.push(`[${new Date().toLocaleTimeString()}] ${msg}`);
+            while (lines.length > 12) lines.shift();
+            panel.textContent = `JS: ${CHAT_SCRIPT_VERSION}\n` + lines.join('\n');
+        }
+
         let currentRoomId = null;
         let messagePolling = null;
+        let pollingTick = 0;
+        let lastMessageId = null;
 
         // Инициализация
         document.addEventListener('DOMContentLoaded', function() {
+            debugLog('DOMContentLoaded');
             loadChatRooms();
             startPolling();
             
@@ -348,6 +394,7 @@
         // Открытие чата
         async function openChat(roomId) {
             currentRoomId = roomId;
+            lastMessageId = null;
             
             // Скрываем пустое состояние
             document.querySelector('.empty-state').style.display = 'none';
@@ -378,8 +425,24 @@
             if (!currentRoomId) return;
             
             try {
+                pollingTick += 1;
+                const container = document.getElementById('messagesContainer');
+                debugLog('loadMessages:start', {
+                    tick: pollingTick,
+                    roomId: currentRoomId,
+                    scrollTop: container?.scrollTop,
+                    clientHeight: container?.clientHeight,
+                    scrollHeight: container?.scrollHeight,
+                    lastMessageId
+                });
                 const response = await fetch(`/api/chat/${currentRoomId}/messages/`);
                 const data = await response.json();
+
+                debugLog('loadMessages:response', {
+                    tick: pollingTick,
+                    success: data?.success,
+                    messagesCount: Array.isArray(data?.messages) ? data.messages.length : null
+                });
                 
                 if (data.success) {
                     renderMessages(data.messages);
@@ -393,15 +456,35 @@
         // Отображение сообщений
         function renderMessages(messages) {
             const container = document.getElementById('messagesContainer');
-            container.innerHTML = '';
-            
-            // Разворачиваем массив, чтобы новые сообщения были внизу
+            // Считаем, что пользователь «внизу», только если он реально в конце списка.
+            // Если он читает историю выше — при polling нельзя уводить его вниз.
+            const bottomEpsilon = 5;
+            const wasAtBottom = (container.scrollTop + container.clientHeight) >= (container.scrollHeight - bottomEpsilon);
+
+            const prevScrollTop = container.scrollTop;
+            const prevScrollHeight = container.scrollHeight;
+
+            // Разворачиваем массив, чтобы старые были сверху, новые снизу
             const reversedMessages = messages.slice().reverse();
-            
+
+            // Первый рендер: рисуем всё
+            if (!container.hasChildNodes() || lastMessageId === null) {
+                container.innerHTML = '';
+                lastMessageId = null;
+            }
+
+            let added = false;
+
             reversedMessages.forEach(message => {
+                // при polling добавляем только новые
+                if (lastMessageId !== null && message.id <= lastMessageId) return;
+                // защита от дублей
+                if (container.querySelector(`[data-message-id="${message.id}"]`)) return;
+
                 const div = document.createElement('div');
                 div.className = 'message';
-                if (message.sender_id === {{ user.id }}) {
+                div.setAttribute('data-message-id', message.id);
+                if (message.sender_id === Number("{{ user.id }}")) {
                     div.classList.add('own');
                 }
                 
@@ -424,10 +507,32 @@
                 div.appendChild(header);
                 div.appendChild(content);
                 container.appendChild(div);
+
+                added = true;
             });
-            
-            // Прокрутка вниз
-            container.scrollTop = container.scrollHeight;
+
+            if (reversedMessages.length > 0) {
+                lastMessageId = Math.max(...reversedMessages.map(m => m.id));
+            }
+
+            debugLog('renderMessages', {
+                wasAtBottom,
+                prevScrollTop,
+                prevScrollHeight,
+                newScrollHeight: container.scrollHeight,
+                added,
+                lastMessageId
+            });
+
+            // Автоскроллим вниз только если пользователь был внизу.
+            // Иначе оставляем текущую позицию (не трогаем scrollTop).
+            if (added && wasAtBottom) {
+                container.scrollTop = container.scrollHeight;
+            } else if (!wasAtBottom) {
+                // Если контент изменился, стараемся сохранить тот же viewport
+                // (по сути оставляем на месте)
+                container.scrollTop = prevScrollTop;
+            }
         }
 
         // Отправка сообщения
