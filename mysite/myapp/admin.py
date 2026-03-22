@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Currency, Interaction, FreelanceTask, Vacancy, ChatRoom, Message, Notification
+from .models import User, Currency, Interaction, FreelanceTask, Vacancy, ChatRoom, Message, Notification, Project
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -57,3 +57,14 @@ class NotificationAdmin(admin.ModelAdmin):
     list_filter = ['notification_type', 'is_read', 'created_at']
     search_fields = ['title', 'message_text']
     raw_id_fields = ['user', 'room', 'message']
+
+@admin.register(Project)
+class ProjectAdmin(admin.ModelAdmin):
+    list_display = ['title', 'author', 'contributors_count', 'id']
+    list_filter = ['author']
+    search_fields = ['title', 'description']
+    raw_id_fields = ['author']
+    
+    def contributors_count(self, obj):
+        return obj.contributors.count()
+    contributors_count.short_description = 'Количество участников'

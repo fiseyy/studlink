@@ -57,5 +57,8 @@ urlpatterns = [
 
     # Проекты
     path('api/projects/create', views.create_project),
-    path('api/projects/add_contributros', views.add_contributors)
+    path('api/projects/add_contributros', views.add_contributors),
+    
+    # Детальная страница проекта
+    path('project/<int:pk>/', views.project_detail, name='project_detail'),
 ]

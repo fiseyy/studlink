@@ -457,9 +457,8 @@ def project_list(request):
     sort_by = request.GET.get('sort', 'created_at')
     page_size = request.GET.get('page_size', 10)
     
-    # Фильтрация проектов (пока используем вакансии как пример проектов)
-    # В реальности здесь должны быть объекты модели Project
-    projects = Vacancy.objects.filter(is_active=True).select_related('employer').prefetch_related('interactions')
+    # Фильтрация проектов
+    projects = Project.objects.select_related('author').prefetch_related('contributors')
     
     # Поиск по названию и описанию
     if search_query:
@@ -474,9 +473,9 @@ def project_list(request):
     elif sort_by == 'title_desc':
         projects = projects.order_by('-title')
     elif sort_by == 'date_asc':
-        projects = projects.order_by('created_at')
+        projects = projects.order_by('id')
     else:  # date_desc по умолчанию
-        projects = projects.order_by('-created_at')
+        projects = projects.order_by('-id')
     
     # Проверка на пустой список
     if not projects.exists():
@@ -1041,3 +1040,18 @@ def add_contributors(request: HttpRequest) -> HttpResponse:
     project.contributors.add(contributors)
 
     project.save()
+
+
+def project_detail(request, pk):
+    """Детальная страница проекта"""
+    project = get_object_or_404(Project, pk=pk)
+    
+    # Получаем участников проекта
+    contributors = project.contributors.all()
+    
+    context = {
+        'project': project,
+        'contributors': contributors,
+    }
+    
+    return render(request, 'project_detail.html', context)

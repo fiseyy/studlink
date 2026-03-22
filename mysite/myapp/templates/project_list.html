@@ -31,15 +31,12 @@
 <div class="item-card">
     <div class="item-title">{{ item.title }}</div>
     <div class="item-meta">
-        {% if item.salary_from %}
-            <div class="budget-large">
-                {{ item.salary_from|format_salary_range_with_spaces:item.salary_to }} {{ item.currency.symbol }}
-            </div>
-        {% endif %}
-        <div><strong>Просмотров:</strong> {{ item.views_count }}</div>
+        <div><strong>Автор:</strong> {{ item.author.username }}</div>
+        <div><strong>Участников:</strong> {{ item.contributors.count }}</div>
+        <div><strong>Создан:</strong> {{ item.id }}</div>
     </div>
     <div class="item-actions">
-        <a href="{% url 'vacancy_detail' item.id %}" class="btn btn-primary btn-sm">Подробнее</a>
+        <a href="{% url 'project_detail' item.id %}" class="btn btn-primary btn-sm">Подробнее</a>
         <button class="btn btn-outline-secondary btn-sm" onclick="saveProject({{ item.id }})">Сохранить</button>
     </div>
 </div>
