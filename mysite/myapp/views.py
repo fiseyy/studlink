@@ -5,7 +5,13 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 from myapp.models import FreelanceTask, Currency
 from myapp.currency_service import CurrencyService
-from .forms import UserRegisterForm
+# from .forms import UserRegisterForm
+
+import re
+import json
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
 
 def vacancy_detail(request, pk):
     vacancy = get_object_or_404(Vacancy, pk=pk)
@@ -142,13 +148,90 @@ def currency_rates_view(request):
     return render(request, 'examples/currency_rates.html', context)
 
 def register(request):
-    if request.method == 'POST':
-        form = UserRegisterForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('login')  # перенаправление на страницу логина после регистрации
-    else:
-        form = UserRegisterForm()
+    # if request.method == 'POST':
+    #     form = UserRegisterForm(request.POST)
+    #     if form.is_valid():
+    #         form.save()
+    #         return redirect('login')  # перенаправление на страницу логина после регистрации
+    # else:
+    #     form = UserRegisterForm()
     
-    return render(request, 'register.html', {'form': form})
-    
+    return render(request, 'register.html')
+
+
+
+
+
+# Загружаем данные
+with open("data.json", "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+top_cities_ru = data["top_cities_ru"]
+job_filters = data["job_filters"]
+top_universities_ru = data["top_universities_ru"]
+
+# ПРИМЕР ВАКАНСИЙ В БД. заменить, когда бд будет существовать
+vacancies_data = [
+    {"id": 1, "title": "Backend-разработчик", "city": "Москва", "description": "Python, Django, REST"},
+    {"id": 2, "title": "Frontend-разработчик", "city": "Санкт-Петербург", "description": "React, JavaScript"},
+    {"id": 3, "title": "Data Analyst", "city": "Москва", "description": "SQL, Python, аналитика данных"},
+]
+
+# Класс поиска
+class Search:
+    def __init__(self, user_tokens=None):
+        self.user_tokens = user_tokens or set()
+
+    def tokenize(self, text: str):
+        if not text:
+            return set()
+        text = text.lower()
+        words = re.findall(r"\w+", text)
+        return set(words)
+
+    def vacancy_tokens(self, vacancy):
+        text = f"{vacancy['title']} {vacancy['description']}"
+        return self.tokenize(text)
+
+    def similarity(self, set1, set2):
+        if not set1 or not set2:
+            return 0
+        return len(set1.intersection(set2)) / len(set1.union(set2))
+
+    def apply_filters(self, vacancies, direction=None, profession=None, city=None):
+        if direction and direction in job_filters:
+            professions = job_filters[direction]
+            vacancies = [v for v in vacancies if v["title"] in professions]
+        if profession:
+            vacancies = [v for v in vacancies if v["title"] == profession]
+        if city and city in top_cities_ru:
+            vacancies = [v for v in vacancies if v["city"] == city]
+        return vacancies
+
+    def search_vacancies(self, direction=None, profession=None, city=None, limit=20):
+        filtered = self.apply_filters(vacancies_data, direction, profession, city)
+        scored = [(v, self.similarity(self.user_tokens, self.vacancy_tokens(v))) for v in filtered]
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return [v[0] for v in scored[:limit]]
+
+
+# API endpoint
+@api_view(["GET"])
+def search_api(request):
+    # токены пользователя можно передавать через GET-параметр q
+    user_query = request.GET.get("q", "")
+    engine = Search(user_tokens=set(user_query.lower().split()))
+
+    direction = request.GET.get("direction")
+    profession = request.GET.get("profession")
+    city = request.GET.get("city")
+
+    results = engine.search_vacancies(direction, profession, city)
+
+    return Response(results)
+
+
+
+
+
+
