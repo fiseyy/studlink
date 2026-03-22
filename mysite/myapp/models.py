@@ -4,7 +4,6 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 
-
 class User(AbstractUser):
     ROLE_CHOICES = [
         ('student', 'Студент'),
@@ -61,6 +60,7 @@ class FreelanceTask(models.Model):
 
     interactions = GenericRelation(Interaction, related_query_name='freelance_tasks')
 
+   
 class Vacancy(models.Model):
     employer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_jobs' )
     hired_candidate = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='hired_jobs')
@@ -68,6 +68,11 @@ class Vacancy(models.Model):
     title = models.CharField(max_length=80)
     description = models.TextField()
     expiration = models.DateTimeField()
+    city = models.CharField(max_length=100)
+
+    schedule = models.CharField(max_length=50)     
+    experience = models.CharField(max_length=50)    
+    work_format = models.CharField(max_length=50)  
 
     currency = models.ForeignKey(Currency, on_delete=models.PROTECT, default=1)
 

@@ -1,316 +1,154 @@
 import re
+import json
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from jobs.models import Vacancy
-from users.models import UserProfile
+from jobs.models import Vacancy, Freelance, Project
+from users.models import UserProfile, Skill
+
+with open("data.json", "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+top_cities_ru = data["top_cities_ru"] 
+job_filters = data["job_filters"]     
+top_universities_ru = data["top_universities_ru"] 
 
 
-# Фильтры профессий
-job_filters = {
-    "Разработка программного обеспечения": [
-        "Backend-разработчик",
-        "Frontend-разработчик",
-        "Fullstack-разработчик",
-        "Python-разработчик",
-        "Java-разработчик",
-        "Мобильный разработчик (iOS/Android)",
-        "QA-инженер (тестировщик)",
-        "DevOps-инженер",
-        "Инженер по автоматизации тестирования",
-        "Стажер-разработчик"
-    ],
+class Search:
+    def __init__(self, user):
+        self.user = user
+        self.user_tokens = self._user_tokens()  # токены пользователя
 
-    "Бухгалтерия и финансы": [
-        "Бухгалтер",
-        "Финансовый аналитик",
-        "Помощник бухгалтера",
-        "Экономист",
-        "Аудитор"
-    ],
+    def tokenize(self, text: str):
+        if not text:
+            return set()
+        text = text.lower()
+        words = re.findall(r"\w+", text)  # токены из текста
+        return set(words)
 
-    "Перевозки, транспортная и складская логистика": [
-        "Логист",
-        "Менеджер по перевозкам",
-        "Специалист по складской логистике",
-        "Диспетчер",
-        "Координатор поставок"
-    ],
+    def _user_tokens(self):
+        if not self.user.is_authenticated:
+            return set()
+        try:
+            profile = self.user.userprofile
+        except UserProfile.DoesNotExist:
+            return set()
+        skills = " ".join([s.name for s in profile.skills.all()])
+        text = f"{profile.bio} {skills}"
+        return self.tokenize(text)
 
-    "Продажи и сопровождение клиентов": [
-        "Менеджер по продажам",
-        "Аккаунт-менеджер",
-        "Менеджер по работе с клиентами",
-        "Специалист поддержки пользователей",
-        "Sales-стажер"
-    ],
+    def obj_tokens(self, obj):
+        skills = " ".join([s.name for s in getattr(obj, "skills", []).all()]) if hasattr(obj, "skills") else ""
+        title = getattr(obj, "title", "")
+        description = getattr(obj, "description", "")
+        text = f"{title} {skills} {description}"
+        return self.tokenize(text)
 
-    "Администрирование и инфраструктура": [
-        "Системный администратор",
-        "IT-администратор",
-        "Специалист технической поддержки",
-        "Сетевой инженер",
-        "Cloud-инженер"
-    ],
+    def similarity(self, set1, set2):
+        if not set1 or not set2:
+            return 0
+        intersection = set1.intersection(set2)
+        union = set1.union(set2)
+        return len(intersection) / len(union)
 
-    "Косметология и здоровье": [
-        "Косметолог",
-        "Массажист",
-        "Администратор клиники",
-        "Специалист по уходу за кожей"
-    ],
+    def apply_filters(self, queryset, direction=None, profession=None, city=None):
+        if direction and direction in job_filters:
+            professions = job_filters[direction]
+            queryset = queryset.filter(title__in=professions)  # фильтр по направлениям
+        if profession:
+            queryset = queryset.filter(title__icontains=profession)  # фильтр по профессии
+        if city and city in top_cities_ru:
+            queryset = queryset.filter(city=city)  # фильтр по городу
+        return queryset
 
-    "Розничная торговля": [
-        "Продавец-консультант",
-        "Кассир",
-        "Администратор магазина",
-        "Мерчендайзер"
-    ],
+    def search_vacancies(self, direction=None, profession=None, city=None,
+                          schedule=None, experience=None, work_format=None, limit=20):
+        qs = Vacancy.objects.prefetch_related("skills").all()  # все вакансии
+        qs = self.apply_filters(qs, direction, profession, city)
+        if schedule:
+            qs = qs.filter(schedule=schedule)
+        if experience:
+            qs = qs.filter(experience=experience)
+        if work_format:
+            qs = qs.filter(work_format=work_format)
+        scored = [(v, self.similarity(self.user_tokens, self.obj_tokens(v))) for v in qs]
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return [v[0] for v in scored[:limit]]
 
-    "Наука и образование": [
-        "Преподаватель",
-        "Репетитор",
-        "Научный сотрудник",
-        "Лаборант",
-        "Ассистент преподавателя"
-    ],
+    def search_freelance(self, direction=None, profession=None, city=None, limit=20):
+        qs = Freelance.objects.prefetch_related("skills").all()  # все фриланс проекты
+        qs = self.apply_filters(qs, direction, profession, city)
+        scored = [(f, self.similarity(self.user_tokens, self.obj_tokens(f))) for f in qs]
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return [f[0] for f in scored[:limit]]
 
-    "Маркетинг и связи с общественностью": [
-        "Маркетолог",
-        "SMM-менеджер",
-        "Контент-менеджер",
-        "PR-специалист",
-        "Digital-маркетолог",
-        "Таргетолог"
-    ],
+    def search_projects(self, direction=None, profession=None, city=None, limit=20):
+        qs = Project.objects.prefetch_related("skills").all()  # все проекты
+        qs = self.apply_filters(qs, direction, profession, city)
+        scored = [(p, self.similarity(self.user_tokens, self.obj_tokens(p))) for p in qs]
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return [p[0] for p in scored[:limit]]
 
-    "Банки, кредитование и страхование": [
-        "Кредитный специалист",
-        "Банковский аналитик",
-        "Менеджер по работе с клиентами банка",
-        "Страховой агент"
-    ],
-
-    "Техническое обслуживание и ремонт": [
-        "Техник",
-        "Инженер по обслуживанию оборудования",
-        "Сервисный инженер",
-        "Механик"
-    ],
-
-    "Компьютерная графика и дизайн": [
-        "UI/UX-дизайнер",
-        "Графический дизайнер",
-        "Веб-дизайнер",
-        "3D-художник",
-        "Моушн-дизайнер"
-    ],
-
-    "Медиа, журналистика и искусство": [
-        "Журналист",
-        "Редактор",
-        "Копирайтер",
-        "Видеооператор",
-        "Контент-креатор"
-    ],
-
-    "Аналитика и хранение данных": [
-        "Data Analyst",
-        "Data Scientist",
-        "BI-аналитик",
-        "Инженер данных (Data Engineer)",
-        "ML-инженер",
-        "Аналитик данных стажер"
-    ],
-
-    "Управление и бизнес": [
-        "Project-менеджер",
-        "Product-менеджер",
-        "Бизнес-аналитик",
-        "Операционный менеджер"
-    ],
-
-    "Психология и коучинг": [
-        "Психолог",
-        "Карьерный консультант",
-        "Коуч",
-        "HR-консультант"
-    ],
-
-    "Юриспруденция": [
-        "Юрист",
-        "Помощник юриста",
-        "Юрисконсульт",
-        "Юрист по договорному праву"
-    ],
-
-    "Строительство и инженерия": [
-        "Инженер-строитель",
-        "Проектировщик",
-        "BIM-инженер",
-        "Инженер ПТО"
-    ],
-
-    "Автомобильная отрасль": [
-        "Автомеханик",
-        "Инженер автомобильной промышленности",
-        "Диагност автомобилей",
-        "Менеджер автосалона"
-    ],
-
-    "Разработка компьютерных игр": [
-        "Unity-разработчик",
-        "Unreal Engine разработчик",
-        "Game Designer",
-        "Тестировщик игр",
-        "Геймплей-программист"
-    ],
-
-    "Производство": [
-        "Инженер производства",
-        "Технолог",
-        "Оператор станков",
-        "Контролер качества"
-    ],
-
-    "Управление персоналом": [
-        "HR-менеджер",
-        "Рекрутер",
-        "HR-аналитик",
-        "Специалист по обучению персонала"
-    ],
-
-    "Добывающая промышленность": [
-        "Горный инженер",
-        "Геолог",
-        "Техник на месторождении",
-        "Инженер по добыче"
-    ]
-}
+    def search_resumes(self, direction=None, profession=None, city=None, university=None, limit=20):
+        qs = UserProfile.objects.prefetch_related("skills").all()  # все резюме
+        if direction and direction in job_filters:
+            professions = job_filters[direction]
+            qs = qs.filter(user__vacancies__title__in=professions).distinct()
+        if profession:
+            qs = qs.filter(user__vacancies__title__icontains=profession).distinct()
+        if city and city in top_cities_ru:
+            qs = qs.filter(city=city)
+        if university and university in top_universities_ru:
+            qs = qs.filter(university__icontains=university)
+        scored = [(r, self.similarity(self.user_tokens, self.obj_tokens(r))) for r in qs]
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return [r[0] for r in scored[:limit]]
 
 
-# Топ-100 городов России
-top_cities_ru = [
-    "Москва","Санкт-Петербург","Новосибирск","Екатеринбург","Казань","Нижний Новгород",
-    "Челябинск","Самара","Омск","Ростов-на-Дону","Уфа","Красноярск","Воронеж","Пермь",
-    "Волгоград","Краснодар","Саратов","Тюмень","Тольятти","Ижевск","Барнаул","Ульяновск",
-    "Иркутск","Хабаровск","Ярославль","Владивосток","Махачкала","Томск","Оренбург",
-    "Кемерово","Новокузнецк","Рязань","Астрахань","Пенза","Липецк","Киров","Чебоксары",
-    "Тула","Калининград","Курск","Ставрополь","Севастополь","Сочи","Симферополь",
-    "Набережные Челны","Белгород","Брянск","Иваново","Владимир","Чита","Архангельск",
-    "Сургут","Нижневартовск","Якутск","Грозный","Смоленск","Калуга","Вологда","Орёл",
-    "Тверь","Мурманск","Тамбов","Кострома","Псков","Новороссийск","Йошкар-Ола",
-    "Саранск","Петрозаводск","Майкоп","Абакан","Горно-Алтайск","Кызыл","Биробиджан",
-    "Южно-Сахалинск","Благовещенск","Комсомольск-на-Амуре","Нальчик","Владикавказ",
-    "Черкесск","Элиста","Магадан","Анадырь","Салехард","Ханты-Мансийск","Дзержинск",
-    "Нижнекамск","Ангарск","Балашиха","Подольск","Химки","Королёв","Мытищи","Люберцы",
-    "Красногорск","Домодедово","Видное","Раменское"
-]
-
-
-# Токенизация текста
-def tokenize(text: str):
-    if not text:
-        return set()
-
-    text = text.lower()
-    words = re.findall(r"\w+", text)
-    return set(words)
-
-
-# Токены пользователя
-def user_tokens(user):
-    try:
-        profile = user.userprofile
-    except UserProfile.DoesNotExist:
-        return set()
-
-    skills = " ".join([s.name for s in profile.skills.all()])
-    text = f"{profile.bio} {skills}"
-
-    return tokenize(text)
-
-
-# Токены вакансии
-def vacancy_tokens(vacancy):
-    skills = " ".join([s.name for s in vacancy.skills.all()])
-
-    text = f"""
-    {vacancy.title} {vacancy.title}
-    {skills} {skills} {skills}
-    {vacancy.description}
-    """
-
-    return tokenize(text)
-
-
-# Совпадение
-def similarity(set1, set2):
-    if not set1 or not set2:
-        return 0
-
-    intersection = set1.intersection(set2)
-    union = set1.union(set2)
-
-    return len(intersection) / len(union)
-
-
-# Основной алгоритм рекомендаций
-def recommend_vacancies(user, direction=None, profession=None, city=None, limit=20):
-    vacancies = Vacancy.objects.prefetch_related("skills").all()
-
-    # Фильтр по направлению
-    if direction and direction in job_filters:
-        professions = job_filters[direction]
-        vacancies = vacancies.filter(title__in=professions)
-
-    # Фильтр по профессии
-    if profession:
-        vacancies = vacancies.filter(title=profession)
-
-    # Фильтр по городу
-    if city and city in top_cities_ru:
-        vacancies = vacancies.filter(city=city)
-
-    u_tokens = user_tokens(user)
-
-    scored = []
-
-    for vacancy in vacancies:
-        v_tokens = vacancy_tokens(vacancy)
-        score = similarity(u_tokens, v_tokens)
-        scored.append((vacancy, score))
-
-    scored.sort(key=lambda x: x[1], reverse=True)
-
-    return [v[0] for v in scored[:limit]]
-
-
-# API endpoint
 @api_view(["GET"])
-def recommended_vacancies(request):
+def search(request):
     user = request.user
+    tab = request.GET.get("tab")  # выбор поиска: vacancies/freelance/projects/resumes
 
     direction = request.GET.get("direction")
     profession = request.GET.get("profession")
     city = request.GET.get("city")
+    schedule = request.GET.get("schedule")
+    experience = request.GET.get("experience")
+    work_format = request.GET.get("work_format")
+    university = request.GET.get("university")
 
-    vacancies = recommend_vacancies(
-        user,
-        direction=direction,
-        profession=profession,
-        city=city
-    )
+    engine = Search(user)
 
-    data = [
-        {
-            "id": v.id,
-            "title": v.title,
-            "description": v.description,
-            "city": getattr(v, "city", None)
+    if tab == "freelance":
+        results = engine.search_freelance(direction, profession, city)
+    elif tab == "projects":
+        results = engine.search_projects(direction, profession, city)
+    elif tab == "resumes":
+        results = engine.search_resumes(direction, profession, city, university)
+    else:
+        results = engine.search_vacancies(direction, profession, city,
+                                          schedule, experience, work_format)
+
+    data = []
+    for obj in results:
+        obj_data = {
+            "id": getattr(obj, "id", None),
+            "title": getattr(obj, "title", None),
+            "city": getattr(obj, "city", None),
+            "schedule": getattr(obj, "schedule", None),
+            "experience": getattr(obj, "experience", None),
+            "work_format": getattr(obj, "work_format", None),
         }
-        for v in vacancies
-    ]
+        if isinstance(obj, UserProfile):
+            obj_data.update({
+                "user_id": obj.user.id,
+                "bio": obj.bio,
+                "skills": [s.name for s in obj.skills.all()],
+                "university": getattr(obj, "university", None),
+                "city": getattr(obj, "city", None),
+            })
+        data.append(obj_data)
 
     return Response(data)

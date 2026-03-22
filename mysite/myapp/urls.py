@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 from .views import RegisterAccount, LoginAccount, PasswordResetConfirmView, logout_account, PasswordResetView, reset_view
+from .views import search_api  # импорт функции из myapp/views.py
+
 
 urlpatterns = [
     # Главная страница
@@ -10,6 +12,9 @@ urlpatterns = [
     path('tasks/', views.task_list, name='task_list'),
     path('api/convert/<int:task_id>/<str:target_currency>/', views.convert_currency_api, name='convert_currency_api'),
     path('currency-rates/', views.currency_rates_view, name='currency_rates'),
+    
+    #API SEARCH
+    path('search/', search_api, name='search'),
     
     # Страницы с пагинацией
     path('vacancies/', views.vacancy_list, name='vacancy_list'),
