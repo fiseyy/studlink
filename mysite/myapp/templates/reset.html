@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Сброс пароля{% endblock %}
+
+{% block main %}
+<script src="{% static 'js/main.js' %}"></script>
+<script src="{% static 'js/account_logic.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+
+<div class="container">
+    <form id="reset-password-form" onsubmit="resetPassword(event, '{{ uidb64 }}', '{{ token }}')">
+        <h1>Сброс пароля</h1>
+        <input type="password" id="new_password" placeholder="Новый пароль" required>
+        <input type="password" id="confirm_password" placeholder="Подтвердите новый пароль" required>
+        <button type="submit">Сбросить пароль</button>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/reset_password.js' %}"></script>
+{% endblock %}

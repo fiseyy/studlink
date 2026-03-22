@@ -6,14 +6,136 @@ from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.db.models import Q
-from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Count, Avg
 from .models import Vacancy, FreelanceTask, Interaction, ChatRoom, Message, Notification
 from myapp.models import FreelanceTask, Currency
 from myapp.currency_service import CurrencyService
+from django.contrib.auth.tokens import default_token_generator
 import json
-from .forms import UserRegisterForm
+from django.contrib.auth import login, authenticate, logout
+
+#auth
+from .models import User
+from .forms import CustomUserCreationForm
+from .serializers import LoginSerializer
+from rest_framework import generics
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.core.mail import send_mail
+from django.views import View
+from django.utils.encoding import force_str, force_bytes
+
+
+#----AUTH----
+def auth_view(request):
+    return render(request, 'auth.html')
+
+def forgot_view(request):
+    return render(request, 'forgot.html')
+
+def reset_view(request, uidb64, token):
+    return render(request, 'reset.html', {'uidb64': uidb64, 'token': token})
+
+class RegisterAccount(generics.CreateAPIView):
+    queryset = User.objects.all()
+
+    def post(self, request, *args, **kwargs):
+        form = CustomUserCreationForm(request.data)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return JsonResponse({'message': 'User registered successfully!'}, status=201)
+        return JsonResponse(form.errors, status=400)  # Возвращаем ошибки формы
+
+class LoginAccount(generics.GenericAPIView):
+    serializer_class = LoginSerializer  # Укажите сериализатор
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)  # Проверка данных
+
+        username_or_email = serializer.validated_data['username']
+        password = serializer.validated_data['password']
+
+        # Попробуем найти пользователя по имени пользователя или адресу электронной почты
+        try:
+            user = User.objects.get(username=username_or_email)
+        except User.DoesNotExist:
+            try:
+                user = User.objects.get(email=username_or_email)
+            except User.DoesNotExist:
+                return JsonResponse({'error': 'Invalid credentials'}, status=400)
+
+        # Проверяем пароль
+        if user.check_password(password):
+            login(request, user)
+            return JsonResponse({'message': 'Login successful!'}, status=200)
+
+        return JsonResponse({'error': 'Invalid credentials'}, status=400)
+
+class PasswordResetView(View):
+    def post(self, request, *args, **kwargs):
+        # Получаем данные из тела запроса
+        try:
+            data = json.loads(request.body)  # Загружаем JSON из тела запроса
+            email = data.get('email')  # Получаем email
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User  with this email does not exist'}, status=400)
+
+        # Генерация токена и отправка письма
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        reset_link = f"http://127.0.0.1:8000/reset/{uid}/{token}/"
+
+        send_mail(
+            'Password Reset Request',
+            f'Вы можете сбросить пароль от вашей учётной записи по ссылке: {reset_link}\nЕсли вы не делали это, то просто проигноррируйте это сообщение',
+            'simple.votings.dev@internet.ru',
+            [email],
+            fail_silently=False,
+        )
+
+        return JsonResponse({'message': 'Password reset email sent!'}, status=200)
+    
+class PasswordResetConfirmView(View):
+    def post(self, request, uidb64, token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            user = None
+
+        if user is not None and default_token_generator.check_token(user, token):
+            try:
+                data = json.loads(request.body)  # Загружаем JSON из тела запроса
+                new_password = data.get('new_password')
+                confirm_password = data.get('confirm_password')
+
+                # Проверка, совпадают ли пароли
+                if new_password != confirm_password:
+                    return JsonResponse({'error': 'Passwords do not match'}, status=400)
+
+                user.set_password(new_password)
+                user.save()
+                return JsonResponse({'message': 'Password has been reset successfully!'}, status=200)
+            except json.JSONDecodeError:
+                return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        
+        return JsonResponse({'error': 'Invalid token or user ID'}, status=400)
+
+@login_required
+def logout_account(request):
+    logout(request)
+    return JsonResponse({'message': 'Logout successful!'}, status=200)
+
+
+#----MAIN PAGE----
+
 
 def index(request):
     """Главная страница"""
@@ -172,19 +294,6 @@ def currency_rates_view(request):
         'base_currency': service.base_currency,
     }
     return render(request, 'examples/currency_rates.html', context)
-
-def register(request):
-    if request.method == 'POST':
-        form = UserRegisterForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('login')  # перенаправление на страницу логина после регистрации
-    else:
-        form = UserRegisterForm()
-    
-    return render(request, 'register.html', {'form': form})
-    
-
 
 # === ПАГИНАЦИЯ ДЛЯ ВАКАНСИЙ ===
 

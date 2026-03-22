@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Авторизация{% endblock %}
+{% block footer %}
+{% include "footer.html" %}
+{% endblock %}
+
+{% block main %}
+<script src="{% static 'js/main.js' %}"></script>
+<script src="{% static 'js/account_logic.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+    <div class="auth-container" id="auth-container">
+        <div class="form-container sign-up">
+            <form onsubmit="registerAccount(); return false;">
+                <h1>Создать аккаунт</h1>
+                <!-- <div class="social-icons">
+                    <a href="#" class="icon"><i class="fa-brands fa-google-plus-g"></i></a>
+                    <a href="#" class="icon"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="#" class="icon"><i class="fa-brands fa-github"></i></a>
+                    <a href="#" class="icon"><i class="fa-brands fa-linkedin-in"></i></a>
+                </div> -->
+                <span>используйте ваш email для регистрации</span>
+                <input type="text" placeholder="name" id="reg_name">
+                <input type="email" placeholder="email" id="reg_email">
+                <input type="password" placeholder="password" id="reg_password">
+                <button type="submit">Зарегистрироваться</button>
+            </form>
+        </div>
+        <div class="form-container sign-in">
+            <form onsubmit="loginAccount(); return false;">
+                <h1>Вход в аккаунт</h1>
+                <!-- <div class="social-icons">
+                    <a href="#" class="icon"><i class="fa-brands fa-google-plus-g"></i></a>
+                    <a href="#" class="icon"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="#" class="icon"><i class="fa-brands fa-github"></i></a>
+                    <a href="#" class="icon"><i class="fa-brands fa-linkedin-in"></i></a>
+                </div> -->
+                <span>используйте ваше имя пользователя и пароль</span>
+                <input type="text" placeholder="name" id="login_name">
+                <input type="password" placeholder="password" id="login_password">
+                <a href="{% url 'forgot' %}">забыли пароль?</a>
+                <button type="submit">Войти</button>
+            </form>
+        </div>
+        <div class="toggle-container">
+            <div class="toggle">
+                <div class="toggle-panel toggle-left">
+                    <h1>С возвращением!</h1>
+                    <p>Войдите в аккаунт, чтобы использовать все функции сайта</p>
+                    <button class="hidden" id="login">Вход в аккаунт</button>
+                </div>
+                <div class="toggle-panel toggle-right">
+                    <h1>Добро пожаловать!</h1>
+                    <p>Зарегистрируйтесь, чтобы использовать все функции сайта</p>
+                    <button class="hidden" id="register">Регистрация</button>
+                </div>
+            </div>
+        </div>
+    </div>
+<script src="{% static 'js/auth.js' %}" ></script>
+
+{% endblock %}

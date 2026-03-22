@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views import RegisterAccount, LoginAccount, PasswordResetConfirmView, logout_account, PasswordResetView, reset_view
 
 urlpatterns = [
     # Главная страница
@@ -36,4 +37,16 @@ urlpatterns = [
     path('api/notifications/', views.get_notifications_api, name='get_notifications_api'),
     path('api/notifications/<int:notification_id>/read/', views.mark_notification_read_api, name='mark_notification_read_api'),
     path('api/messages/<int:message_id>/read/', views.mark_message_read_api, name='mark_message_read_api'),
+    
+    #API login/reg/pass reset
+    path('api/register/', RegisterAccount.as_view(), name='register_account'),
+    path('api/login/', LoginAccount.as_view(), name='login_account'),
+    path('api/logout/', logout_account, name='logout'),
+    path('api/password_reset/', PasswordResetView.as_view(), name='password_reset'),
+    path('api/password_reset_confirm/<uidb64>/<token>/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+
+    # Страницы авторизации
+    path('auth/', views.auth_view, name='auth'),
+    path('forgot/', views.forgot_view, name='forgot'),
+    path('reset/<uidb64>/<token>/', reset_view, name='reset'),
 ]

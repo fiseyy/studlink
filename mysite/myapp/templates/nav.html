@@ -13,9 +13,9 @@
                 <a href="{% url 'project_list' %}"><button class="nav-button {% if request.resolver_match.url_name == 'project_list' %}active{% endif %}">Проекты</button></a>
             </div>
         </div>
-        <div class="nav-right d-flex justify-content-end align-items-center">
-            <img class="profile-image" src="{% static "assets/images/profile_image_tmp.jpg" %}" alt="">
-            <a href=""><button class="nav-button login-button">Войти</button></a>
-        </div>
+            <div class="nav-right d-flex justify-content-end align-items-center">
+                <img class="profile-image" src="{% static "assets/images/profile_image_tmp.jpg" %}" alt="">
+                <a href="{% url 'auth' %}"><button class="nav-button login-button">Войти</button></a>
+            </div>
     </div>
 </div>

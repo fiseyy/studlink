@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block main %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<script src="{% static 'js/main.js' %}"></script>
+<script src="{% static 'js/account_logic.js' %}"></script>
+<div class="container">
+    <form id="password-reset-form">
+        <h1>Забыли пароль?</h1>
+        <input type="email" placeholder="email" required>
+        <button id="check_account" type="submit">Проверить аккаунт</button>
+    </form>
+</div>
+<script src="{% static 'js/forgot.js' %}"></script>
+<script>
+    document.getElementById('password-reset-form').addEventListener('submit', function(event) {
+        event.preventDefault(); // Предотвращаем стандартное поведение формы
+        sendPasswordResetEmail(); // Вызываем функцию отправки
+    });
+</script>
+{% endblock %}
+

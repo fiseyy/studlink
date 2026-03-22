@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'myapp',
     'celery',
+    'rest_framework'
 ]
 
 MIDDLEWARE = [
@@ -140,3 +141,32 @@ CELERY_TIMEZONE = 'Europe/Moscow'
 
 # Currency Configuration
 BASE_CURRENCY = 'RUB'  # Базовая валюта для пересчета
+
+# Django REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',  # Разрешаем доступ всем для регистрации и входа
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser'
+    ]
+}
+
+
+# Рабочий email backend для Mail.ru
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Используем SMTP
+EMAIL_HOST = 'smtp.mail.ru'  # SMTP-сервер Mail.ru
+EMAIL_PORT = 587  # Порт для TLS
+EMAIL_USE_TLS = True  # Используем TLS
+EMAIL_HOST_USER = 'simple.votings.dev@internet.ru'  # Ваш адрес электронной почты Mail.ru
+EMAIL_HOST_PASSWORD = 'aocpJRdPO1oujrOHO2hi'  # Ваш пароль (или пароль приложения, если включена двухфакторная аутентификация)
