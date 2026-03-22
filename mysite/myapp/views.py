@@ -793,3 +793,18 @@ def profile_general(request: HttpRequest) -> HttpResponse:
     context['type'] = 'general'
 
     return render(request, 'profile/general.html', context)
+
+
+@login_required
+@require_POST
+def change_user_data(request: HttpRequest) -> HttpResponse:
+    user = request.user
+
+    user.username = request.POST.get('username')
+    user.first_name = request.POST.get('name')
+    user.last_name = request.POST.get('surname')
+    user.email = request.POST.get('email')
+
+    user.save()
+
+    return HttpResponse('success')

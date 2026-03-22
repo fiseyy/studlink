@@ -38,4 +38,5 @@ urlpatterns = [
     path('api/messages/<int:message_id>/read/', views.mark_message_read_api, name='mark_message_read_api'),
 
     path('profile/general', views.profile_general),
+    path('api/user/change_data', views.change_user_data)
 ]

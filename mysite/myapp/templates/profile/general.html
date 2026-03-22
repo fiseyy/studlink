@@ -12,8 +12,8 @@
         <input class="user-field" type="text" name="username1" id="username1" value="{{ user.username }}">
         <input class="user-field" type="text" name="name1" id="name1" value="{{ user.first_name }}">
         <input class="user-field" type="text" name="surname1" id="surname1" value="{{ user.last_name }}">
-        <input class="user-field" type="text" name="email1" id="email1" value="{{ user.email }}">
+        <input class="user-field" type="text" name="mail1" id="mail1" value="{{ user.email }}">
     </div>
-    <button class="user-save" type="submit">Сохранить</button>
+    <button class="user-save" type="submit" onclick="change_profile()">Сохранить</button>
 </div>
 {% endblock content %}
